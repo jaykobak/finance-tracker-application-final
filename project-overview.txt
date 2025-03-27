@@ -1,0 +1,59 @@
+# Finance Tracker Project Overview
+
+## File Structure and Purpose
+
+### Root Directory
+- `package.json` - Project configuration, dependencies, and scripts
+- `tsconfig.json` - TypeScript compiler configuration
+- `vite.config.ts` - Vite build tool configuration
+- `tailwind.config.ts` - Tailwind CSS configuration
+- `index.html` - Main HTML entry point
+
+### Source Directory (`src/`)
+- `main.tsx` - Application entry point
+- `App.tsx` - Main application component with routing configuration
+- `index.css` - Global CSS styles
+- `styles.css` - Additional CSS styles
+- `vite-env.d.ts` - Type declarations for Vite
+
+### Pages (`src/pages/`)
+- `Index.tsx` - Home page / dashboard
+- `Login.tsx` - User login page
+- `Signup.tsx` - User registration page with currency selection
+- `NotFound.tsx` - 404 error page
+
+### Components (`src/components/`)
+- **Layout components**
+  - `layout/AppLayout.tsx` - Main layout wrapper for authenticated pages
+
+- **Dashboard components**
+  - `dashboard/Dashboard.tsx` - Main dashboard component
+
+- **Transaction components**
+  - `transactions/TransactionForm.tsx` - Form for adding new transactions
+  - `transactions/TransactionList.tsx` - List of all transactions
+  - `transactions/TransactionItem.tsx` - Individual transaction display
+
+- **Chart components**
+  - `charts/BalanceChart.tsx` - Balance and income/expense visualization
+
+- **Auth components**
+  - `auth/ProtectedRoute.tsx` - Route guard for authenticated routes
+
+- **Theme components**
+  - `theme/ThemeProvider.tsx` - Provider for theme context
+  - `theme/ThemeToggle.tsx` - Button for toggling light/dark theme
+
+- **UI components** (`src/components/ui/`)
+  - Various reusable UI components (buttons, inputs, cards, etc.)
+  - `CurrencyInput.tsx` - Special input for currency values
+
+### Library code (`src/lib/`)
+- `auth.tsx` - Authentication logic and context
+- `store.ts` - Financial data management and local storage
+- `types.ts` - TypeScript type definitions
+- `utils.ts` - Utility functions
+
+### Hooks (`src/hooks/`)
+- `use-mobile.tsx` - Hook for responsive design
+- `use-toast.ts` - Hook for displaying toast notifications
