@@ -1,9 +1,11 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Transaction } from '@/lib/types';
 import { TransactionItem } from './TransactionItem';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { ReceiptIcon } from 'lucide-react';
+import { TransactionFilter, FilterOption } from './TransactionFilter';
+import { filterTransactions, getUniqueYears, getUniqueCategories, months } from '@/lib/filterTransactions';
 
 interface TransactionListProps {
   transactions: Transaction[];
@@ -11,6 +13,23 @@ interface TransactionListProps {
 }
 
 export function TransactionList({ transactions, onDeleteTransaction }: TransactionListProps) {
+  const [activeFilters, setActiveFilters] = useState<FilterOption[]>([]);
+  const [filteredTransactions, setFilteredTransactions] = useState<Transaction[]>(transactions);
+  
+  // Get unique years and categories for filters
+  const years = getUniqueYears(transactions);
+  const categories = getUniqueCategories(transactions);
+  
+  // Update filtered transactions when transactions or filters change
+  useEffect(() => {
+    setFilteredTransactions(filterTransactions(transactions, activeFilters));
+  }, [transactions, activeFilters]);
+  
+  // Handle filter changes
+  const handleFilterChange = (newFilters: FilterOption[]) => {
+    setActiveFilters(newFilters);
+  };
+
   if (transactions.length === 0) {
     return (
       <Card className="w-full h-full">
@@ -33,21 +52,47 @@ export function TransactionList({ transactions, onDeleteTransaction }: Transacti
 
   return (
     <Card className="w-full h-full">
-      <CardHeader className="pb-4">
-        <CardTitle>Recent Transactions</CardTitle>
-        <CardDescription>Your recent financial activities</CardDescription>
+      <CardHeader className="pb-4 flex flex-row items-center justify-between">
+        <div>
+          <CardTitle>Recent Transactions</CardTitle>
+          <CardDescription>Your recent financial activities</CardDescription>
+        </div>
+        <TransactionFilter
+          years={years}
+          months={months}
+          categories={categories}
+          activeFilters={activeFilters}
+          onFilterChange={handleFilterChange}
+        />
       </CardHeader>
       <CardContent>
-        <ScrollArea className="h-[350px] pr-4 -mr-4">
-          <div className="space-y-2">
-            {transactions.map((transaction) => (
-              <TransactionItem
-                key={transaction.id}
-                transaction={transaction}
-                onDelete={onDeleteTransaction}
-              />
+        {activeFilters.length > 0 && (
+          <div className="flex flex-wrap gap-2 text-sm mb-3">
+            <span className="text-muted-foreground">Filtered by:</span>
+            {activeFilters.map((filter, index) => (
+              <span key={index} className="bg-secondary px-2 py-1 rounded-md">
+                {filter.type}: {filter.label}
+              </span>
             ))}
           </div>
+        )}
+        
+        <ScrollArea className="h-[350px] pr-4 -mr-4">
+          {filteredTransactions.length > 0 ? (
+            <div className="space-y-2">
+              {filteredTransactions.map((transaction) => (
+                <TransactionItem
+                  key={transaction.id}
+                  transaction={transaction}
+                  onDelete={onDeleteTransaction}
+                />
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-8 text-muted-foreground">
+              No transactions match your filters
+            </div>
+          )}
         </ScrollArea>
       </CardContent>
     </Card>
