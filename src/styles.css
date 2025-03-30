@@ -16,3 +16,35 @@
     flex: 0 0 100%;
     min-width: 0;
   }
+  
+  /* Sheet swipe behavior */
+  .sheet-content[data-state="open"] {
+    transition: transform 0.3s ease-out;
+  }
+  
+  .sheet-content[data-state="closed"] {
+    transition: transform 0.3s ease-in;
+  }
+  
+  /* Make handle more visible */
+  .handle-area {
+    padding: 12px 0;
+    touch-action: none;
+  }
+  
+  /* Add these styles for better sheet interaction */
+  .sheet-content {
+    touch-action: pan-y;
+    user-select: none;
+  }
+  
+  /* Ensure the handle is clearly visible in all themes */
+  .sheet-content .bg-gray-300 {
+    background-color: #d1d5db;
+  }
+  
+  /* Add a subtle shadow to make the handle more visible */
+  .sheet-content .bg-gray-300,
+  .sheet-content .bg-muted {
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+  }

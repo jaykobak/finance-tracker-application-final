@@ -28,6 +28,8 @@ import {
   CardDescription,
   CardFooter,
 } from "@/components/ui/card";
+import { useMediaQuery } from '@/hooks/useMediaQuery';
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 
 interface TransactionItemProps {
   transaction: Transaction;
@@ -43,6 +45,9 @@ export function TransactionItem({
   const [detailsDialogOpen, setDetailsDialogOpen] = useState(false);
   const [currencyCode, setCurrencyCode] = useState('USD');
   const [currencySymbol, setCurrencySymbol] = useState('$');
+
+  // Check if we're on mobile
+  const isMobile = useMediaQuery('(max-width: 640px)');
 
   // Get the user's currency preference from localStorage
   useEffect(() => {
@@ -172,6 +177,63 @@ export function TransactionItem({
     setDetailsDialogOpen(true);
   };
 
+  // Transaction details content - extracted to avoid duplication
+  const renderTransactionDetails = () => (
+    <Card className="border-0 shadow-none">
+      <CardHeader className="p-0">
+        <div className="flex items-center justify-between mb-2">
+          <CardTitle className="text-lg">{description}</CardTitle>
+          <div
+            className={cn(
+              "px-2 py-1 rounded text-sm font-medium",
+              isIncome
+                ? "bg-positive/10 text-positive"
+                : "bg-negative/10 text-negative"
+            )}
+          >
+            {isIncome ? "Income" : "Expense"}
+          </div>
+        </div>
+        <CardDescription>{category}</CardDescription>
+      </CardHeader>
+
+      <CardContent className="p-0 mt-4 space-y-4">
+        <div className="flex flex-col space-y-1">
+          <span className="text-sm text-muted-foreground">Amount</span>
+          <span
+            className={cn(
+              "text-xl font-semibold",
+              isIncome ? "text-positive" : "text-negative"
+            )}
+          >
+            {isIncome ? "+" : "-"}
+            {fullFormattedAmount}
+          </span>
+        </div>
+
+        <div className="flex flex-col space-y-1">
+          <span className="text-sm text-muted-foreground">
+            Date & Time
+          </span>
+          <div>
+            <div className="text-sm font-medium">{formattedDate}</div>
+            <div className="text-xs text-muted-foreground">
+              {formattedTime}
+            </div>
+          </div>
+        </div>
+      </CardContent>
+
+      {!isMobile && (
+        <CardFooter className="p-0 mt-6">
+          <DialogClose asChild>
+            <Button className="w-full">Close</Button>
+          </DialogClose>
+        </CardFooter>
+      )}
+    </Card>
+  );
+
   return (
     <>
       <div
@@ -259,68 +321,70 @@ export function TransactionItem({
         </div>
       </div>
 
-      <Dialog open={detailsDialogOpen} onOpenChange={setDetailsDialogOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Transaction Details</DialogTitle>
-            <DialogDescription>
-              View detailed information about this transaction.
-            </DialogDescription>
-          </DialogHeader>
-
-          <Card className="border-0 shadow-none">
-            <CardHeader className="p-0">
-              <div className="flex items-center justify-between mb-2">
-                <CardTitle className="text-lg">{description}</CardTitle>
-                <div
-                  className={cn(
-                    "px-2 py-1 rounded text-sm font-medium",
-                    isIncome
-                      ? "bg-positive/10 text-positive"
-                      : "bg-negative/10 text-negative"
-                  )}
-                >
-                  {isIncome ? "Income" : "Expense"}
-                </div>
-              </div>
-              <CardDescription>{category}</CardDescription>
-            </CardHeader>
-
-            <CardContent className="p-0 mt-4 space-y-4">
-              <div className="flex flex-col space-y-1">
-                <span className="text-sm text-muted-foreground">Amount</span>
-                <span
-                  className={cn(
-                    "text-xl font-semibold",
-                    isIncome ? "text-positive" : "text-negative"
-                  )}
-                >
-                  {isIncome ? "+" : "-"}
-                  {fullFormattedAmount}
-                </span>
-              </div>
-
-              <div className="flex flex-col space-y-1">
-                <span className="text-sm text-muted-foreground">
-                  Date & Time
-                </span>
-                <div>
-                  <div className="text-sm font-medium">{formattedDate}</div>
-                  <div className="text-xs text-muted-foreground">
-                    {formattedTime}
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-
-            <CardFooter className="p-0 mt-6">
-              <DialogClose asChild>
-                <Button className="w-full">Close</Button>
-              </DialogClose>
-            </CardFooter>
-          </Card>
-        </DialogContent>
-      </Dialog>
+      {isMobile ? (
+        <Sheet open={detailsDialogOpen} onOpenChange={setDetailsDialogOpen}>
+          <SheetContent 
+            side="bottom" 
+            className="h-auto max-h-[60vh] rounded-t-xl overflow-auto sheet-content"
+            onPointerDown={(e) => {
+              // This handles swipe on the entire sheet content
+              const content = e.currentTarget;
+              const startY = e.clientY;
+              let moved = false;
+              
+              const onMove = (moveEvent: PointerEvent) => {
+                moved = true;
+                const deltaY = moveEvent.clientY - startY;
+                if (deltaY > 0) {
+                  content.style.transform = `translateY(${deltaY}px)`;
+                  content.style.transition = 'none';
+                }
+              };
+              
+              const onUp = (upEvent: PointerEvent) => {
+                document.removeEventListener('pointermove', onMove);
+                document.removeEventListener('pointerup', onUp);
+                
+                if (moved) {
+                  content.style.transition = 'transform 0.2s ease-out';
+                  const deltaY = upEvent.clientY - startY;
+                  if (deltaY > 40) {
+                    content.style.transform = `translateY(100%)`;
+                    setTimeout(() => setDetailsDialogOpen(false), 200);
+                  } else {
+                    content.style.transform = '';
+                  }
+                }
+              };
+              
+              document.addEventListener('pointermove', onMove);
+              document.addEventListener('pointerup', onUp);
+            }}
+          >
+            <div className="w-full flex justify-center mb-4">
+              {/* Improve handle visibility in light mode */}
+              <div className="w-12 h-1.5 flex-shrink-0 rounded-full bg-gray-300 dark:bg-muted" />
+            </div>
+            <SheetHeader className="mb-4">
+              <SheetTitle>Transaction Details</SheetTitle>
+            </SheetHeader>
+            {renderTransactionDetails()}
+          </SheetContent>
+        </Sheet>
+      ) : (
+        // Desktop dialog remains the same
+        <Dialog open={detailsDialogOpen} onOpenChange={setDetailsDialogOpen}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>Transaction Details</DialogTitle>
+              <DialogDescription>
+                View detailed information about this transaction.
+              </DialogDescription>
+            </DialogHeader>
+            {renderTransactionDetails()}
+          </DialogContent>
+        </Dialog>
+      )}
     </>
   );
 }
