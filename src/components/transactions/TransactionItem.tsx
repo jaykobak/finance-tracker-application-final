@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Transaction } from '@/lib/types';
 import { format } from 'date-fns';
 import { PlusCircleIcon, MinusCircleIcon, MoreVerticalIcon, Trash2Icon, InfoIcon } from 'lucide-react';
@@ -41,17 +41,66 @@ export function TransactionItem({
   const { id, type, amount, description, category, date } = transaction;
   const isIncome = type === "income";
   const [detailsDialogOpen, setDetailsDialogOpen] = useState(false);
+  const [currencyCode, setCurrencyCode] = useState('USD');
+  const [currencySymbol, setCurrencySymbol] = useState('$');
+
+  // Get the user's currency preference from localStorage
+  useEffect(() => {
+    const storedCurrency = localStorage.getItem('finance-tracker-currency');
+    const storedSymbol = localStorage.getItem('finance-tracker-currency-symbol');
+    
+    if (storedCurrency) {
+      setCurrencyCode(storedCurrency);
+    }
+    
+    if (storedSymbol) {
+      setCurrencySymbol(storedSymbol);
+    }
+  }, []);
 
   const formattedDate = format(new Date(date), "MMM d, yyyy");
   const formattedTime = format(new Date(date), "h:mm a");
 
   // Format currency with abbreviated suffixes (K, M, B) for large numbers
   const formatCurrency = (amount: number) => {
+    // Special handling for Nigerian Naira and Ghanaian Cedi
+    if (currencyCode === 'NGN' || currencyCode === 'GHS') {
+      const symbol = currencyCode === 'NGN' ? '₦' : '₵';
+      
+      // Format with appropriate suffix based on amount
+      if (Math.abs(amount) < 100000) {
+        return `${symbol}${new Intl.NumberFormat("en-US", {
+          style: "decimal",
+          maximumFractionDigits: 0,
+        }).format(amount)}`;
+      } else if (Math.abs(amount) >= 100000 && Math.abs(amount) < 1000000) {
+        const formatted = new Intl.NumberFormat("en-US", {
+          style: "decimal",
+          maximumFractionDigits: 1,
+        }).format(amount / 1000).replace(".0", "");
+        return `${symbol}${formatted}K`;
+      } else if (Math.abs(amount) >= 1000000 && Math.abs(amount) < 1000000000) {
+        const formatted = new Intl.NumberFormat("en-US", {
+          style: "decimal",
+          maximumFractionDigits: 1,
+        }).format(amount / 1000000).replace(".0", "");
+        return `${symbol}${formatted}M`;
+      } else if (Math.abs(amount) >= 1000000000) {
+        const formatted = new Intl.NumberFormat("en-US", {
+          style: "decimal",
+          maximumFractionDigits: 1,
+        }).format(amount / 1000000000).replace(".0", "");
+        return `${symbol}${formatted}B`;
+      }
+    }
+    
+    // For other currencies, use the standard Intl formatter
     // If amount is less than 100,000, just return regular formatting
     if (Math.abs(amount) < 100000) {
       return new Intl.NumberFormat("en-US", {
         style: "currency",
-        currency: "USD",
+        currency: currencyCode,
+        currencyDisplay: "symbol",
         maximumFractionDigits: 0,
       }).format(amount);
     }
@@ -61,7 +110,8 @@ export function TransactionItem({
       return (
         new Intl.NumberFormat("en-US", {
           style: "currency",
-          currency: "USD",
+          currency: currencyCode,
+          currencyDisplay: "symbol",
           maximumFractionDigits: 1,
         })
           .format(amount / 1000)
@@ -74,7 +124,8 @@ export function TransactionItem({
       return (
         new Intl.NumberFormat("en-US", {
           style: "currency",
-          currency: "USD",
+          currency: currencyCode,
+          currencyDisplay: "symbol",
           maximumFractionDigits: 1,
         })
           .format(amount / 1000000)
@@ -87,7 +138,8 @@ export function TransactionItem({
       return (
         new Intl.NumberFormat("en-US", {
           style: "currency",
-          currency: "USD",
+          currency: currencyCode,
+          currencyDisplay: "symbol",
           maximumFractionDigits: 1,
         })
           .format(amount / 1000000000)
@@ -100,10 +152,21 @@ export function TransactionItem({
   const formattedAmount = formatCurrency(amount);
 
   // Keep full format for the details dialog
-  const fullFormattedAmount = new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "USD",
-  }).format(amount);
+  let fullFormattedAmount;
+  if (currencyCode === 'NGN' || currencyCode === 'GHS') {
+    const symbol = currencyCode === 'NGN' ? '₦' : '₵';
+    fullFormattedAmount = `${symbol}${new Intl.NumberFormat("en-US", {
+      style: "decimal",
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }).format(amount)}`;
+  } else {
+    fullFormattedAmount = new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: currencyCode,
+      currencyDisplay: "symbol",
+    }).format(amount);
+  }
 
   const handleViewDetails = () => {
     setDetailsDialogOpen(true);
