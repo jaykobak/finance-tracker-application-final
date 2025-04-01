@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
 import { useAuth } from '@/lib/auth';
+import { Eye, EyeOff } from 'lucide-react';
 
 // Available currencies
 const CURRENCIES = [
@@ -26,8 +27,20 @@ const Signup = () => {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [currency, setCurrency] = useState('USD');
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const navigate = useNavigate();
   const { signup } = useAuth();
+
+  // Handle name change with validation for no spaces
+  // Updated handleNameChange to prevent spaces and numbers
+  const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    // Only update if there are no spaces and no numbers
+    if (!value.includes(' ') && !/\d/.test(value)) {
+      setName(value);
+    }
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -81,12 +94,12 @@ const Signup = () => {
           <CardContent className="space-y-4">
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="name">Full Name</Label>
+                <Label htmlFor="name">First Name</Label>
                 <Input 
                   id="name" 
-                  placeholder="John Doe" 
+                  placeholder="John" 
                   value={name}
-                  onChange={(e) => setName(e.target.value)}
+                  onChange={handleNameChange}
                   required
                 />
               </div>
@@ -103,25 +116,53 @@ const Signup = () => {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="password">Password</Label>
-                <Input 
-                  id="password" 
-                  type="password" 
-                  placeholder="••••••••" 
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                />
+                <div className="relative">
+                  <Input 
+                    id="password" 
+                    type={showPassword ? "text" : "password"}
+                    placeholder="••••••••" 
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                  />
+                  <button
+                    type="button"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                    onClick={() => setShowPassword(!showPassword)}
+                    tabIndex={-1}
+                  >
+                    {showPassword ? (
+                      <EyeOff className="h-4 w-4" />
+                    ) : (
+                      <Eye className="h-4 w-4" />
+                    )}
+                  </button>
+                </div>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="confirmPassword">Confirm Password</Label>
-                <Input 
-                  id="confirmPassword" 
-                  type="password" 
-                  placeholder="••••••••" 
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  required
-                />
+                <div className="relative">
+                  <Input 
+                    id="confirmPassword" 
+                    type={showConfirmPassword ? "text" : "password"}
+                    placeholder="••••••••" 
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    required
+                  />
+                  <button
+                    type="button"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                    tabIndex={-1}
+                  >
+                    {showConfirmPassword ? (
+                      <EyeOff className="h-4 w-4" />
+                    ) : (
+                      <Eye className="h-4 w-4" />
+                    )}
+                  </button>
+                </div>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="currency">Preferred Currency</Label>
@@ -137,6 +178,7 @@ const Signup = () => {
                     ))}
                   </SelectContent>
                 </Select>
+                <p className="text-xs text-muted-foreground pb-3">Choose the currency you would like to use for all your transactions</p>
               </div>
               <Button type="submit" className="w-full">
                 Create account

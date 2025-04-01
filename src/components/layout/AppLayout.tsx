@@ -28,7 +28,7 @@ export function AppLayout({ children, className }: AppLayoutProps) {
                 <span className="font-medium">Finance</span>Tracker
               </h1>
               <p className="text-muted-foreground text-sm">
-                Track your financial life with elegance and simplicity
+                Track your financial life with simplicity
               </p>
             </div>
             
