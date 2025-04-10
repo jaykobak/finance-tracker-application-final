@@ -1,6 +1,21 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { ArrowUpIcon, ArrowDownIcon, DollarSignIcon } from 'lucide-react';
+import { 
+  ArrowUpIcon, 
+  ArrowDownIcon, 
+  DollarSignIcon,
+  PlusIcon, 
+  CreditCardIcon, 
+  WalletIcon,
+  PiggyBankIcon,
+  BarChartIcon,
+  BriefcaseIcon,
+  TrashIcon,
+  Building2Icon as BankIcon,
+  ShoppingCartIcon,
+  PlaneIcon,
+  BanknoteIcon
+} from 'lucide-react';
 import { FinancialSummary, Transaction } from '@/lib/types';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 import { 
@@ -10,7 +25,79 @@ import {
   CarouselNext,
   CarouselPrevious
 } from '@/components/ui/carousel';
-import { format, isToday, isThisWeek, isThisMonth, isThisYear, startOfDay, startOfWeek, startOfMonth, startOfYear } from 'date-fns';
+import { Button } from '@/components/ui/button';
+import { format, isToday, isThisWeek, isThisMonth, isThisYear, startOfWeek } from 'date-fns';
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+  SheetFooter,
+  SheetClose
+} from "@/components/ui/sheet";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+  DialogClose
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Tooltip as UITooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { toast } from "sonner";
+import { useMediaQuery } from "@/hooks/useMediaQuery";
+import CurrencyInput from '@/components/ui/CurrencyInput';
+
+// Account type
+interface Account {
+  id: string;
+  name: string;
+  balance: number;
+  type: 'cash' | 'bank' | 'credit' | 'investment' | 'savings' | 'other';
+  accountNumber?: string;
+  icon: string;
+}
+
+// Account icon options
+const ACCOUNT_ICONS = [
+  { id: 'wallet', icon: <WalletIcon className="h-6 w-6" />, label: 'Wallet' },
+  { id: 'credit-card', icon: <CreditCardIcon className="h-6 w-6" />, label: 'Credit Card' },
+  { id: 'bank', icon: <BankIcon className="h-6 w-6" />, label: 'Bank' },
+  { id: 'piggy-bank', icon: <PiggyBankIcon className="h-6 w-6" />, label: 'Savings' },
+  { id: 'chart', icon: <BarChartIcon className="h-6 w-6" />, label: 'Investments' },
+  { id: 'briefcase', icon: <BriefcaseIcon className="h-6 w-6" />, label: 'Business' },
+  { id: 'money', icon: <BanknoteIcon className="h-6 w-6" />, label: 'Cash' },
+  { id: 'shopping', icon: <ShoppingCartIcon className="h-6 w-6" />, label: 'Shopping' },
+  { id: 'travel', icon: <PlaneIcon className="h-6 w-6" />, label: 'Travel' },
+];
+
+// Account types
+const ACCOUNT_TYPES = [
+  { value: 'cash', label: 'Cash' },
+  { value: 'bank', label: 'Bank Account' },
+  { value: 'credit', label: 'Credit Card' },
+  { value: 'investment', label: 'Investment' },
+  { value: 'savings', label: 'Savings' },
+  { value: 'other', label: 'Other' },
+];
 
 interface BalanceChartProps {
   summary: FinancialSummary;
@@ -23,6 +110,29 @@ export function BalanceChart({ summary, transactions }: BalanceChartProps) {
   const { balance } = summary;
   const [animate, setAnimate] = useState(false);
   const [currencySymbol, setCurrencySymbol] = useState('$');
+  const isDesktop = useMediaQuery('(min-width: 768px)');
+  
+  // Form state - moved to component level instead of using formValues in the AccountFormContent
+  const [newAccountName, setNewAccountName] = useState('');
+  const [newAccountType, setNewAccountType] = useState<Account['type']>('bank');
+  const [newAccountNumber, setNewAccountNumber] = useState('');
+  const [newAccountIcon, setNewAccountIcon] = useState('wallet');
+  
+  // Create a ref to access the account form state
+  const accountFormRef = useRef<{
+    getFormState: () => {
+      name: string;
+      type: Account['type'];
+      number: string;
+      icon: string;
+    };
+    resetForm: () => void;
+  } | null>(null);
+  
+  // Mock accounts - in a real app, this would come from your state management
+  const [accounts, setAccounts] = useState<Account[]>([
+    { id: 'cash', name: 'Cash', balance: 0, type: 'cash', icon: 'wallet' }
+  ]);
   
   // Get the currency symbol from localStorage when the component mounts
   useEffect(() => {
@@ -42,6 +152,68 @@ export function BalanceChart({ summary, transactions }: BalanceChartProps) {
   // Format currency values
   const formatCurrency = (value: number) => {
     return `${currencySymbol}${value.toFixed(2).replace(/\d(?=(\d{3})+\.)/g, '$&,')}`;
+  };
+
+  // Add a new account
+  const handleAddAccount = () => {
+    // Use the ref to get current form state
+    if (!accountFormRef.current) {
+      toast.error("Form not available");
+      return;
+    }
+    
+    const formState = accountFormRef.current.getFormState();
+    
+    if (!formState.name.trim()) {
+      toast.error("Account name is required");
+      return;
+    }
+    
+    const newAccount: Account = {
+      id: `account-${Date.now()}`,
+      name: formState.name,
+      balance: formState.initialBalance,
+      type: formState.type,
+      accountNumber: formState.number || undefined,
+      icon: formState.icon
+    };
+    
+    setAccounts([...accounts, newAccount]);
+    
+    // Reset the form
+    accountFormRef.current.resetForm();
+    
+    // Close the dialog/sheet by triggering a click on the close button
+    const closeButton = document.querySelector(
+      isDesktop ? '[data-dialog-close]' : '[data-sheet-close]'
+    ) as HTMLButtonElement | null;
+    
+    if (closeButton) {
+      closeButton.click();
+    }
+    
+    toast.success(`Account "${formState.name}" added successfully`);
+  };
+
+  // Delete an account
+  const handleDeleteAccount = (accountId: string) => {
+    // Don't allow deleting the last account
+    if (accounts.length <= 1) {
+      toast.error("You must have at least one account");
+      return;
+    }
+    
+    const accountToDelete = accounts.find(a => a.id === accountId);
+    if (!accountToDelete) return;
+    
+    setAccounts(accounts.filter(a => a.id !== accountId));
+    toast.success(`Account "${accountToDelete.name}" deleted`);
+  };
+
+  // Get icon for account type
+  const getAccountIcon = (iconId: string) => {
+    const iconObj = ACCOUNT_ICONS.find(i => i.id === iconId);
+    return iconObj ? iconObj.icon : <WalletIcon className="h-6 w-6" />;
   };
 
   // Calculate summaries for different time periods
@@ -83,8 +255,6 @@ export function BalanceChart({ summary, transactions }: BalanceChartProps) {
     yearly: calculatePeriodSummary('yearly')
   };
 
-  const formattedBalance = formatCurrency(balance);
-
   // Get the period title
   const getPeriodTitle = (period: TimePeriod): string => {
     switch(period) {
@@ -101,31 +271,326 @@ export function BalanceChart({ summary, transactions }: BalanceChartProps) {
     }
   };
 
+  // Account Form Content - shared between sheet and dialog
+  const AccountFormContent = React.forwardRef<{
+    getFormState: () => {
+      name: string;
+      type: Account['type'];
+      number: string;
+      icon: string;
+      initialBalance: number;
+    };
+    resetForm: () => void;
+  }, {}>((_props, ref) => {
+    // Create local state for form values
+    const [formState, setFormState] = useState({
+      name: '',
+      type: 'bank' as Account['type'],
+      number: '',
+      icon: 'wallet',
+      initialBalance: 0
+    });
+
+    // Expose methods to parent via ref
+    React.useImperativeHandle(ref, () => ({
+      getFormState: () => formState,
+      resetForm: () => {
+        setFormState({
+          name: '',
+          type: 'bank' as Account['type'],
+          number: '',
+          icon: 'wallet',
+          initialBalance: 0
+        });
+      }
+    }));
+
+    return (
+      <div className="grid gap-4 py-4">
+        <div className="space-y-2">
+          <Label htmlFor="account-name">Account Name *</Label>
+          <Input 
+            id="account-name" 
+            placeholder="e.g. Wema Account" 
+            value={formState.name}
+            onChange={(e) => setFormState({...formState, name: e.target.value})}
+            autoComplete="off"
+          />
+          <p className="text-xs text-muted-foreground">Required</p>
+        </div>
+        
+        <div className="space-y-2">
+          <Label htmlFor="account-type">Account Type</Label>
+          <Select 
+            value={formState.type} 
+            onValueChange={(value) => setFormState({...formState, type: value as Account['type']})}
+          >
+            <SelectTrigger id="account-type">
+              <SelectValue placeholder="Select account type" />
+            </SelectTrigger>
+            <SelectContent position="popper">
+              {ACCOUNT_TYPES.map((type) => (
+                <SelectItem key={type.value} value={type.value}>
+                  {type.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        
+        <div className="space-y-2">
+          <Label htmlFor="initial-balance">Initial Balance</Label>
+          <CurrencyInput
+            id="initial-balance"
+            value={formState.initialBalance}
+            onChange={(value) => setFormState({...formState, initialBalance: value})}
+            placeholder="0.00"
+            allowDecimalPoint={true}
+          />
+          <p className="text-xs text-muted-foreground">
+            Starting balance for this account
+          </p>
+        </div>
+        
+        <div className="space-y-2">
+          <Label htmlFor="account-number">Account Number (Optional)</Label>
+          <Input 
+            id="account-number" 
+            placeholder="e.g. **** 1357"
+            value={formState.number}
+            onChange={(e) => setFormState({...formState, number: e.target.value})}
+            autoComplete="off"
+          />
+          <p className="text-xs text-muted-foreground">
+            For your reference only, not required
+          </p>
+        </div>
+        
+        <div className="space-y-2">
+          <Label>Account Icon</Label>
+          <div className="grid grid-cols-3 sm:grid-cols-5 gap-2 mt-2">
+            {ACCOUNT_ICONS.map((iconOption) => (
+              <TooltipProvider key={iconOption.id}>
+                <UITooltip>
+                  <TooltipTrigger asChild>
+                    <button
+                      type="button"
+                      onClick={() => setFormState({...formState, icon: iconOption.id})}
+                      className={`p-3 rounded-lg flex flex-col items-center justify-center transition-colors ${
+                        formState.icon === iconOption.id 
+                          ? 'bg-primary text-primary-foreground' 
+                          : 'bg-secondary hover:bg-secondary/80'
+                      }`}
+                    >
+                      {iconOption.icon}
+                      <span className="text-xs mt-1">{iconOption.label}</span>
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>{iconOption.label}</p>
+                  </TooltipContent>
+                </UITooltip>
+              </TooltipProvider>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  });
+
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6 animate-fade-up">
       <Card className="md:col-span-1">
         <CardHeader className="pb-2">
-          <CardTitle className="text-base font-medium">Current Balance</CardTitle>
-          <CardDescription>Your net financial position</CardDescription>
+          <div className="flex justify-between items-center">
+            <CardTitle className="text-base font-medium">Your Accounts</CardTitle>
+            {isDesktop ? (
+              <Dialog>
+                <DialogTrigger asChild>
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    className="h-8 w-8"
+                  >
+                    <PlusIcon className="h-4 w-4" />
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="sm:max-w-[425px]">
+                  <DialogHeader>
+                    <DialogTitle>Add New Account</DialogTitle>
+                    <DialogDescription>
+                      Create a new account to track your finances
+                    </DialogDescription>
+                  </DialogHeader>
+                  
+                  <AccountFormContent ref={accountFormRef} />
+                  
+                  <DialogFooter className="mt-6">
+                    <DialogClose asChild>
+                      <Button variant="outline" data-dialog-close>Cancel</Button>
+                    </DialogClose>
+                    <Button onClick={handleAddAccount}>Add Account</Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
+            ) : (
+              <Sheet>
+                <SheetTrigger asChild>
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    className="h-8 w-8"
+                  >
+                    <PlusIcon className="h-4 w-4" />
+                  </Button>
+                </SheetTrigger>
+                <SheetContent side="bottom" className="h-[90vh] sm:h-[70vh] overflow-y-auto">
+                  <SheetHeader className="mb-4">
+                    <SheetTitle>Add New Account</SheetTitle>
+                    <SheetDescription>
+                      Create a new account to track your finances
+                    </SheetDescription>
+                  </SheetHeader>
+                  
+                  <AccountFormContent ref={accountFormRef} />
+                  
+                  <SheetFooter className="mt-4 sm:mt-0">
+                    <SheetClose asChild>
+                      <Button variant="outline" data-sheet-close>Cancel</Button>
+                    </SheetClose>
+                    <Button onClick={handleAddAccount} className="mb-2">Add Account</Button>
+                  </SheetFooter>
+                </SheetContent>
+              </Sheet>
+            )}
+          </div>
+          <CardDescription>Manage your financial accounts</CardDescription>
         </CardHeader>
         <CardContent className="pt-0">
-          <div className="flex flex-col items-center justify-center pt-6 pb-4">
-            <div className={`p-4 rounded-full mb-3 ${
-              balance >= 0 ? 'bg-positive/10 text-positive' : 'bg-negative/10 text-negative'
-            }`}>
-              <DollarSignIcon size={28} />
+          <Carousel className="w-full">
+            <CarouselContent>
+              {accounts.map((account) => (
+                <CarouselItem key={account.id}>
+                  <div className="flex flex-col items-center justify-center pt-6 pb-4 relative">
+                    <TooltipProvider>
+                      <UITooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="absolute top-0 right-0 h-8 w-8 text-muted-foreground hover:text-destructive"
+                            onClick={() => handleDeleteAccount(account.id)}
+                          >
+                            <TrashIcon className="h-4 w-4" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>Delete account</p>
+                        </TooltipContent>
+                      </UITooltip>
+                    </TooltipProvider>
+                    
+                    <div className={`p-4 rounded-full mb-3 ${
+                      account.balance >= 0 ? 'bg-positive/10 text-positive' : 'bg-negative/10 text-negative'
+                    }`}>
+                      {getAccountIcon(account.icon)}
+                    </div>
+                    <h3 className="text-lg font-medium mb-1">{account.name}</h3>
+                    <h2 
+                      className={`text-3xl font-bold ${
+                        account.balance >= 0 ? 'text-positive' : 'text-negative'
+                      } ${animate ? 'scale-110' : 'scale-100'} balance-transition`}
+                    >
+                      {formatCurrency(account.balance)}
+                    </h2>
+                    <p className="text-sm text-muted-foreground mt-2">
+                      Account balance
+                    </p>
+                    {account.accountNumber && (
+                      <p className="text-xs text-muted-foreground mt-1">
+                        {account.accountNumber}
+                      </p>
+                    )}
+                  </div>
+                </CarouselItem>
+              ))}
+              <CarouselItem>
+                {isDesktop ? (
+                  <Dialog>
+                    <DialogTrigger asChild>
+                      <div className="flex flex-col items-center justify-center pt-6 pb-4 h-[200px] cursor-pointer hover:bg-secondary/20 rounded-lg transition-colors">
+                        <Button 
+                          variant="outline" 
+                          className="rounded-full h-16 w-16 mb-4"
+                        >
+                          <PlusIcon className="h-8 w-8" />
+                        </Button>
+                        <h3 className="text-lg font-medium">Add Account</h3>
+                        <p className="text-sm text-muted-foreground mt-2 text-center px-4">
+                          Add a new account to track your finances
+                        </p>
+                      </div>
+                    </DialogTrigger>
+                    <DialogContent className="sm:max-w-[425px]">
+                      <DialogHeader>
+                        <DialogTitle>Add New Account</DialogTitle>
+                        <DialogDescription>
+                          Create a new account to track your finances
+                        </DialogDescription>
+                      </DialogHeader>
+                      
+                      <AccountFormContent ref={accountFormRef} />
+                      
+                      <DialogFooter className="mt-6">
+                        <DialogClose asChild>
+                          <Button variant="outline" data-dialog-close>Cancel</Button>
+                        </DialogClose>
+                        <Button onClick={handleAddAccount}>Add Account</Button>
+                      </DialogFooter>
+                    </DialogContent>
+                  </Dialog>
+                ) : (
+                  <Sheet>
+                    <SheetTrigger asChild>
+                      <div className="flex flex-col items-center justify-center pt-6 pb-4 h-[200px] cursor-pointer hover:bg-secondary/20 rounded-lg transition-colors">
+                        <Button 
+                          variant="outline" 
+                          className="rounded-full h-16 w-16 mb-4"
+                        >
+                          <PlusIcon className="h-8 w-8" />
+                        </Button>
+                        <h3 className="text-lg font-medium">Add Account</h3>
+                        <p className="text-sm text-muted-foreground mt-2 text-center px-4">
+                          Add a new account to track your finances
+                        </p>
+                      </div>
+                    </SheetTrigger>
+                    <SheetContent side="bottom" className="h-[90vh] sm:h-[70vh] overflow-y-auto">
+                      <SheetHeader className="mb-4">
+                        <SheetTitle>Add New Account</SheetTitle>
+                        <SheetDescription>
+                          Create a new account to track your finances
+                        </SheetDescription>
+                      </SheetHeader>
+                      
+                      <AccountFormContent ref={accountFormRef} />
+                      
+                      <SheetFooter className="mt-4 sm:mt-0">
+                        <SheetClose asChild>
+                          <Button variant="outline" data-sheet-close>Cancel</Button>
+                        </SheetClose>
+                        <Button onClick={handleAddAccount} className="mb-2">Add Account</Button>
+                      </SheetFooter>
+                    </SheetContent>
+                  </Sheet>
+                )}
+              </CarouselItem>
+            </CarouselContent>
+            <div className="flex justify-center mt-4">
+              <CarouselPrevious className="static transform-none translate-y-0 mr-2" />
+              <CarouselNext className="static transform-none translate-y-0 ml-2" />
             </div>
-            <h2 
-              className={`text-3xl font-bold ${
-                balance >= 0 ? 'text-positive' : 'text-negative'
-              } ${animate ? 'scale-110' : 'scale-100'} balance-transition`}
-            >
-              {formattedBalance}
-            </h2>
-            <p className="text-sm text-muted-foreground mt-2">
-              Net balance
-            </p>
-          </div>
+          </Carousel>
         </CardContent>
       </Card>
       
@@ -230,3 +695,8 @@ export function BalanceChart({ summary, transactions }: BalanceChartProps) {
     </div>
   );
 }
+
+// Enhance BalanceChart and TransactionForm components with account management features and custom category support
+// `Added account management features to BalanceChart and TransactionForm components, including adding new accounts, deleting accounts, and custom category support.`
+
+// Add account management features to BalanceChart component and add custom category support to TransactionForm component

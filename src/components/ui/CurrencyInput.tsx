@@ -35,11 +35,15 @@ const CurrencyInput = forwardRef<HTMLInputElement, CurrencyInputProps>(
       // Remove all non-numeric characters except decimal point
       const numericValue = inputValue.replace(/[^0-9.]/g, '');
       
-      // Allow only numbers and decimal point
-      if (/^[0-9]*\.?[0-9]*$/.test(numericValue) || numericValue === '') {
-        setDisplayValue(numericValue);
-        onChange(numericValue === '' ? 0 : parseFloat(numericValue));
-      }
+      // Ensure only one decimal point is allowed
+      const parts = numericValue.split('.');
+      const sanitizedValue = parts.length > 2 
+        ? `${parts[0]}.${parts.slice(1).join('')}` 
+        : numericValue;
+      
+      // Allow empty input, numbers, and properly formatted decimal values
+      setDisplayValue(sanitizedValue);
+      onChange(sanitizedValue === '' ? 0 : parseFloat(sanitizedValue) || 0);
     };
 
     const handleBlur = () => {
@@ -67,12 +71,22 @@ const CurrencyInput = forwardRef<HTMLInputElement, CurrencyInputProps>(
     };
 
     // Format the displayed value with commas
-    const formattedDisplayValue = displayValue ? 
-      new Intl.NumberFormat('en-US', {
-        minimumFractionDigits: 0,
-        maximumFractionDigits: 2
-      }).format(parseFloat(displayValue) || 0) : 
-      '0';
+    const formattedDisplayValue = (() => {
+      if (displayValue === '') return '';
+      
+      // If it has a decimal point, format the part before the decimal
+      if (displayValue.includes('.')) {
+        const [wholePart, decimalPart] = displayValue.split('.');
+        const formattedWholePart = new Intl.NumberFormat('en-US').format(parseFloat(wholePart) || 0);
+        return `${formattedWholePart}.${decimalPart}`;
+      } else {
+        // Format whole numbers
+        return new Intl.NumberFormat('en-US', {
+          minimumFractionDigits: 0,
+          maximumFractionDigits: 2
+        }).format(parseFloat(displayValue) || 0);
+      }
+    })();
 
     return (
       <div className="relative">
