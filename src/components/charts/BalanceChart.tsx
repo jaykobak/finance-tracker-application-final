@@ -100,13 +100,12 @@ const ACCOUNT_TYPES = [
 ];
 
 interface BalanceChartProps {
-  summary: FinancialSummary;
-  transactions: Transaction[];
+  summary: any;
+  transactions: any[];
+  onAccountsUpdate?: (accounts: Array<{ id: string; name: string }>) => void;
 }
 
-type TimePeriod = 'daily' | 'weekly' | 'monthly' | 'yearly';
-
-export function BalanceChart({ summary, transactions }: BalanceChartProps) {
+export function BalanceChart({ summary, transactions, onAccountsUpdate }: BalanceChartProps) {
   const { balance } = summary;
   const [animate, setAnimate] = useState(false);
   const [currencySymbol, setCurrencySymbol] = useState('$');
@@ -133,6 +132,18 @@ export function BalanceChart({ summary, transactions }: BalanceChartProps) {
   const [accounts, setAccounts] = useState<Account[]>([
     { id: 'cash', name: 'Cash', balance: 0, type: 'cash', icon: 'wallet' }
   ]);
+  
+  // Send initial accounts to parent component when the component mounts
+  useEffect(() => {
+    // Only run once on component mount to initialize the accounts in the transaction form
+    if (onAccountsUpdate && accounts.length > 0) {
+      const formattedAccounts = accounts.map(account => ({
+        id: account.id,
+        name: account.name
+      }));
+      onAccountsUpdate(formattedAccounts);
+    }
+  }, [/* empty dependency array to run only once */]);
   
   // Get the currency symbol from localStorage when the component mounts
   useEffect(() => {
@@ -178,7 +189,18 @@ export function BalanceChart({ summary, transactions }: BalanceChartProps) {
       icon: formState.icon
     };
     
-    setAccounts([...accounts, newAccount]);
+    // Update accounts state
+    const updatedAccounts = [...accounts, newAccount];
+    setAccounts(updatedAccounts);
+    
+    // Only update parent component after successfully adding an account
+    if (onAccountsUpdate) {
+      const formattedAccounts = updatedAccounts.map(account => ({
+        id: account.id,
+        name: account.name
+      }));
+      onAccountsUpdate(formattedAccounts);
+    }
     
     // Reset the form
     accountFormRef.current.resetForm();
@@ -206,7 +228,19 @@ export function BalanceChart({ summary, transactions }: BalanceChartProps) {
     const accountToDelete = accounts.find(a => a.id === accountId);
     if (!accountToDelete) return;
     
-    setAccounts(accounts.filter(a => a.id !== accountId));
+    // Update accounts state
+    const updatedAccounts = accounts.filter(a => a.id !== accountId);
+    setAccounts(updatedAccounts);
+    
+    // Only update parent component after successfully deleting an account
+    if (onAccountsUpdate) {
+      const formattedAccounts = updatedAccounts.map(account => ({
+        id: account.id,
+        name: account.name
+      }));
+      onAccountsUpdate(formattedAccounts);
+    }
+    
     toast.success(`Account "${accountToDelete.name}" deleted`);
   };
 
@@ -695,8 +729,3 @@ export function BalanceChart({ summary, transactions }: BalanceChartProps) {
     </div>
   );
 }
-
-// Enhance BalanceChart and TransactionForm components with account management features and custom category support
-// `Added account management features to BalanceChart and TransactionForm components, including adding new accounts, deleting accounts, and custom category support.`
-
-// Add account management features to BalanceChart component and add custom category support to TransactionForm component

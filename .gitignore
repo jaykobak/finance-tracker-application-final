@@ -38,3 +38,6 @@ Thumbs.db
 .cache/
 .eslintcache/
 turbo/
+
+# Ignore Vite timestamped config files
+vite.config.ts.timestamp-*

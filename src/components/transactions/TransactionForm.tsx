@@ -6,24 +6,34 @@ import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Transaction, TransactionType } from '@/lib/types';
 import CurrencyInput from '@/components/ui/CurrencyInput';
-import { PlusIcon, MinusIcon, PlusCircleIcon } from 'lucide-react';
+import { PlusIcon, MinusIcon, PlusCircleIcon, XIcon } from 'lucide-react';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 interface TransactionFormProps {
   onAddTransaction: (transaction: Omit<Transaction, 'id'>) => void;
+  accounts: Array<{ id: string; name: string; }>;
 }
 
 const CATEGORIES = {
-  income: ['Salary', 'Freelance', 'Investment', 'Gift', 'Business income', 'Allowance', 'Other'],
+  income: ['Salary', 'Freelance', 'Investment', 'Gift', 'Business income', 'Other'],
   expense: ['Housing', 'Food', 'Transportation', 'Utilities', 'Shopping', 'Healthcare', 'Subscriptions', 'Church giving', 'Education', 'Maintenance', 'Travel', 'Other']
 };
 
-export function TransactionForm({ onAddTransaction }: TransactionFormProps) {
+export function TransactionForm({ onAddTransaction, accounts = [] }: TransactionFormProps) {
   const [type, setType] = useState<TransactionType>('income');
   const [amount, setAmount] = useState<number>(0);
   const [description, setDescription] = useState('');
   const [category, setCategory] = useState('');
   const [customCategory, setCustomCategory] = useState('');
   const [showCustomCategory, setShowCustomCategory] = useState(false);
+  const [editCategories, setEditCategories] = useState(false);
+  const [accountId, setAccountId] = useState<string>(accounts.length > 0 ? accounts[0].id : '');
 
   // Keep track of user-added custom categories
   const [userCategories, setUserCategories] = useState<{
@@ -46,6 +56,7 @@ export function TransactionForm({ onAddTransaction }: TransactionFormProps) {
     setCategory('');
     setCustomCategory('');
     setShowCustomCategory(false);
+    // Don't reset the account selection to maintain user preference
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -68,6 +79,11 @@ export function TransactionForm({ onAddTransaction }: TransactionFormProps) {
       return;
     }
     
+    if (!accountId) {
+      alert('Please select an account');
+      return;
+    }
+    
     // If using a custom category that's not in our lists yet, add it
     if (showCustomCategory && !allCategories[type].includes(customCategory)) {
       setUserCategories(prev => ({
@@ -82,6 +98,7 @@ export function TransactionForm({ onAddTransaction }: TransactionFormProps) {
       description: description.trim(),
       category: finalCategory.trim(),
       date: new Date().toISOString(),
+      accountId, // Add the account ID to the transaction
     });
     
     resetForm();
@@ -96,6 +113,34 @@ export function TransactionForm({ onAddTransaction }: TransactionFormProps) {
       setCategory(customCategory);
       setCustomCategory('');
       setShowCustomCategory(false);
+    }
+  };
+
+  const handleDeleteCategory = (categoryToDelete: string) => {
+    // Don't allow deletion of default categories
+    if (CATEGORIES[type].includes(categoryToDelete)) {
+      alert("Default categories cannot be deleted");
+      return;
+    }
+    
+    setUserCategories(prev => {
+      const updatedCategories = {
+        ...prev,
+        [type]: prev[type].filter(cat => cat !== categoryToDelete)
+      };
+      
+      // If we just deleted the last custom category, turn off edit mode
+      if (updatedCategories[type].length === 0) {
+        // Use setTimeout to avoid state update during render
+        setTimeout(() => setEditCategories(false), 0);
+      }
+      
+      return updatedCategories;
+    });
+    
+    // If the currently selected category is being deleted, reset it
+    if (category === categoryToDelete) {
+      setCategory('');
     }
   };
 
@@ -115,6 +160,7 @@ export function TransactionForm({ onAddTransaction }: TransactionFormProps) {
                 setType(value as TransactionType);
                 setCategory('');
                 setShowCustomCategory(false);
+                setEditCategories(false);
               }}
               className="flex"
             >
@@ -146,6 +192,36 @@ export function TransactionForm({ onAddTransaction }: TransactionFormProps) {
           </div>
           
           <div className="space-y-2">
+            <Label htmlFor="account">Account</Label>
+            <Select 
+              value={accountId} 
+              onValueChange={setAccountId}
+            >
+              <SelectTrigger id="account">
+                <SelectValue placeholder="Select account" />
+              </SelectTrigger>
+              <SelectContent>
+                {accounts.length > 0 ? (
+                  accounts.map((account) => (
+                    <SelectItem key={account.id} value={account.id}>
+                      {account.name}
+                    </SelectItem>
+                  ))
+                ) : (
+                  <SelectItem value="no-accounts" disabled>
+                    No accounts available
+                  </SelectItem>
+                )}
+              </SelectContent>
+            </Select>
+            {accounts.length === 0 && (
+              <p className="text-xs text-muted-foreground mt-1">
+                Please add an account in the Accounts section first
+              </p>
+            )}
+          </div>
+          
+          <div className="space-y-2">
             <Label htmlFor="amount">Amount</Label>
             <CurrencyInput
               id="amount"
@@ -168,15 +244,28 @@ export function TransactionForm({ onAddTransaction }: TransactionFormProps) {
           <div className="space-y-2">
             <div className="flex justify-between items-center">
               <Label htmlFor="category">Category</Label>
-              <Button 
-                type="button" 
-                variant="ghost" 
-                size="sm" 
-                className="h-8 px-2 text-xs"
-                onClick={() => setShowCustomCategory(!showCustomCategory)}
-              >
-                {showCustomCategory ? 'Select Existing' : 'Add Custom'}
-              </Button>
+              <div className="flex gap-2">
+                {userCategories[type].length > 0 && (
+                  <Button 
+                    type="button" 
+                    variant="ghost" 
+                    size="sm" 
+                    className="h-8 px-2 text-xs"
+                    onClick={() => setEditCategories(!editCategories)}
+                  >
+                    {editCategories ? 'Done' : 'Edit'}
+                  </Button>
+                )}
+                <Button 
+                  type="button" 
+                  variant="ghost" 
+                  size="sm" 
+                  className="h-8 px-2 text-xs"
+                  onClick={() => setShowCustomCategory(!showCustomCategory)}
+                >
+                  {showCustomCategory ? 'Select Existing' : 'Add Custom'}
+                </Button>
+              </div>
             </div>
             
             {showCustomCategory ? (
@@ -198,19 +287,35 @@ export function TransactionForm({ onAddTransaction }: TransactionFormProps) {
                 </Button>
               </div>
             ) : (
+              // In the category buttons section
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-[200px] overflow-y-auto">
                 {allCategories[type].map((cat) => (
-                  <Button
-                    key={cat}
-                    type="button"
-                    variant={category === cat ? "default" : "outline"}
-                    className={`h-auto py-2 text-xs font-normal ${
-                      category === cat ? "" : "border-muted-foreground/20"
-                    }`}
-                    onClick={() => setCategory(cat)}
-                  >
-                    {cat}
-                  </Button>
+                  <div key={cat} className="relative group">
+                    <Button
+                      type="button"
+                      variant={category === cat ? "default" : "outline"}
+                      className={`h-auto py-2 text-xs font-normal w-full ${
+                        category === cat ? "" : "border-muted-foreground/20"
+                      } ${editCategories ? 'pr-8' : ''}`}
+                      onClick={() => !editCategories && setCategory(cat)}
+                    >
+                      {cat}
+                    </Button>
+                    {editCategories && !CATEGORIES[type].includes(cat) && (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="absolute right-1 top-1/2 -translate-y-1/2 h-6 w-6 p-0 flex items-center justify-center"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDeleteCategory(cat);
+                        }}
+                      >
+                        <XIcon size={14} className="text-destructive" />
+                      </Button>
+                    )}
+                  </div>
                 ))}
               </div>
             )}

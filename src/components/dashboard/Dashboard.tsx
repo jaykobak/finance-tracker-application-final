@@ -7,6 +7,14 @@ import { Skeleton } from '@/components/ui/skeleton';
 
 export function Dashboard() {
   const { transactions, summary, addTransaction, deleteTransaction, isLoading } = useTransactions();
+  
+  // Get accounts from the BalanceChart component
+  const [chartAccounts, setChartAccounts] = React.useState([]);
+  
+  // Function to receive accounts from BalanceChart
+  const handleAccountsUpdate = (accounts) => {
+    setChartAccounts(accounts);
+  };
 
   if (isLoading) {
     return (
@@ -25,10 +33,17 @@ export function Dashboard() {
 
   return (
     <div className="space-y-6">
-      <BalanceChart summary={summary} transactions={transactions} />
+      <BalanceChart 
+        summary={summary} 
+        transactions={transactions} 
+        onAccountsUpdate={handleAccountsUpdate}
+      />
       
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <TransactionForm onAddTransaction={addTransaction} />
+        <TransactionForm 
+          onAddTransaction={addTransaction}
+          accounts={chartAccounts}
+        />
         <TransactionList 
           transactions={transactions}
           onDeleteTransaction={deleteTransaction}
