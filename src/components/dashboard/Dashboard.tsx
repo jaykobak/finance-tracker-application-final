@@ -47,6 +47,7 @@ export function Dashboard() {
         <TransactionList 
           transactions={transactions}
           onDeleteTransaction={deleteTransaction}
+          accounts={chartAccounts}
         />
       </div>
     </div>

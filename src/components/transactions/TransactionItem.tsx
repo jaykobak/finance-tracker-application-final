@@ -34,11 +34,13 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "
 interface TransactionItemProps {
   transaction: Transaction;
   onDelete: (id: string) => void;
+  accountName?: string; // Add optional accountName prop
 }
 
 export function TransactionItem({
   transaction,
   onDelete,
+  accountName, // Add the accountName prop
 }: TransactionItemProps) {
   const { id, type, amount, description, category, date } = transaction;
   const isIncome = type === "income";
@@ -211,6 +213,14 @@ export function TransactionItem({
           </span>
         </div>
 
+        {/* Add account information to the details */}
+        {accountName && (
+          <div className="flex flex-col space-y-1">
+            <span className="text-sm text-muted-foreground">Account</span>
+            <div className="text-sm font-medium">{accountName}</div>
+          </div>
+        )}
+
         <div className="flex flex-col space-y-1">
           <span className="text-sm text-muted-foreground">
             Date & Time
@@ -281,43 +291,62 @@ export function TransactionItem({
             </div>
           </div>
         </div>
-        <div className="flex items-center space-x-1 sm:space-x-3">
-          <span
-            className={cn(
-              "font-medium",
-              isIncome ? "text-positive" : "text-negative"
+        
+        {/* Split into two columns: amount and actions */}
+        <div className="flex items-center space-x-2 sm:space-x-4">
+          {/* Amount column with account name above */}
+          <div className="flex flex-col items-end">
+            {/* Account name above amount with truncation */}
+            {accountName && (
+              <span 
+                className="text-xs text-muted-foreground mb-0.5"
+                title={accountName} // Show full name on hover
+              >
+                {accountName.length > 14
+                  ? `${accountName.substring(0, 14)}...`
+                  : accountName}
+              </span>
             )}
-          >
-            {isIncome ? "+" : "-"}
-            {formattedAmount}
-          </span>
+            <span
+              className={cn(
+                "font-medium",
+                isIncome ? "text-positive" : "text-negative"
+              )}
+            >
+              {isIncome ? "+" : "-"}
+              {formattedAmount}
+            </span>
+          </div>
+          
+          {/* Actions column (three-dot menu) */}
+          <div>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-8 w-8">
+                  <MoreVerticalIcon className="h-4 w-4" />
+                  <span className="sr-only">Open menu</span>
+                </Button>
+              </DropdownMenuTrigger>
 
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon" className="h-8 w-8">
-                <MoreVerticalIcon className="h-4 w-4" />
-                <span className="sr-only">Open menu</span>
-              </Button>
-            </DropdownMenuTrigger>
-
-            <DropdownMenuContent align="end" className="w-56">
-              <DropdownMenuItem
-                onClick={handleViewDetails}
-                className="cursor-pointer"
-              >
-                <InfoIcon className="mr-2 h-4 w-4" />
-                <span>View Details</span>
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem
-                onClick={() => onDelete(id)}
-                className="text-destructive focus:text-destructive cursor-pointer"
-              >
-                <Trash2Icon className="mr-2 h-4 w-4" />
-                <span>Delete Transaction</span>
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+              <DropdownMenuContent align="end" className="w-56">
+                <DropdownMenuItem
+                  onClick={handleViewDetails}
+                  className="cursor-pointer"
+                >
+                  <InfoIcon className="mr-2 h-4 w-4" />
+                  <span>View Details</span>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  onClick={() => onDelete(id)}
+                  className="text-destructive focus:text-destructive cursor-pointer"
+                >
+                  <Trash2Icon className="mr-2 h-4 w-4" />
+                  <span>Delete Transaction</span>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
         </div>
       </div>
 

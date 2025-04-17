@@ -10,9 +10,14 @@ import { filterTransactions, getUniqueYears, getUniqueCategories, months } from 
 interface TransactionListProps {
   transactions: Transaction[];
   onDeleteTransaction: (id: string) => void;
+  accounts?: Array<{ id: string; name: string }>; // Add accounts prop
 }
 
-export function TransactionList({ transactions, onDeleteTransaction }: TransactionListProps) {
+export function TransactionList({ 
+  transactions, 
+  onDeleteTransaction,
+  accounts = [] // Default to empty array if not provided
+}: TransactionListProps) {
   const [activeFilters, setActiveFilters] = useState<FilterOption[]>([]);
   const [filteredTransactions, setFilteredTransactions] = useState<Transaction[]>(transactions);
   
@@ -28,6 +33,13 @@ export function TransactionList({ transactions, onDeleteTransaction }: Transacti
   // Handle filter changes
   const handleFilterChange = (newFilters: FilterOption[]) => {
     setActiveFilters(newFilters);
+  };
+
+  // Function to get account name from accountId
+  const getAccountName = (accountId?: string) => {
+    if (!accountId) return undefined;
+    const account = accounts.find(acc => acc.id === accountId);
+    return account ? account.name : undefined;
   };
 
   if (transactions.length === 0) {
@@ -85,6 +97,7 @@ export function TransactionList({ transactions, onDeleteTransaction }: Transacti
                   key={transaction.id}
                   transaction={transaction}
                   onDelete={onDeleteTransaction}
+                  accountName={getAccountName(transaction.accountId)}
                 />
               ))}
             </div>
