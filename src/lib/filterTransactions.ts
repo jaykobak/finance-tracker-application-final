@@ -16,6 +16,7 @@ export function filterTransactions(
     const yearFilters = activeFilters.filter(f => f.type === 'year');
     const monthFilters = activeFilters.filter(f => f.type === 'month');
     const categoryFilters = activeFilters.filter(f => f.type === 'category');
+    const accountFilters = activeFilters.filter(f => f.type === 'account'); // Add account filters
     
     // If there are year filters, check if the transaction year matches any of them
     if (yearFilters.length > 0) {
@@ -36,6 +37,13 @@ export function filterTransactions(
     // If there are category filters, check if the transaction category matches any of them
     if (categoryFilters.length > 0) {
       if (!categoryFilters.some(f => f.value === transaction.category)) {
+        return false;
+      }
+    }
+    
+    // If there are account filters, check if the transaction accountId matches any of them
+    if (accountFilters.length > 0) {
+      if (!accountFilters.some(f => f.value === transaction.accountId)) {
         return false;
       }
     }
