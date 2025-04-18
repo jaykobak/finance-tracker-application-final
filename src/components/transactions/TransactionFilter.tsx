@@ -26,7 +26,7 @@ import { cn } from '@/lib/utils';
 import { useMediaQuery } from '@/hooks/useMediaQuery';
 
 // Define filter types
-export type FilterType = 'year' | 'month' | 'category';
+export type FilterType = 'year' | 'month' | 'category' | 'account';
 export type FilterValue = string | number;
 
 export interface FilterOption {
@@ -39,6 +39,7 @@ interface TransactionFilterProps {
   years: number[];
   months: { value: number; label: string }[];
   categories: string[];
+  accounts?: Array<{ id: string; name: string }>; // Add accounts prop
   activeFilters: FilterOption[];
   onFilterChange: (filters: FilterOption[]) => void;
 }
@@ -47,6 +48,7 @@ export function TransactionFilter({
   years,
   months,
   categories,
+  accounts = [], // Default to empty array
   activeFilters,
   onFilterChange,
 }: TransactionFilterProps) {
@@ -285,6 +287,51 @@ export function TransactionFilter({
           </DropdownMenuPortal>
         </DropdownMenuSub>
 
+        {/* Account Filter - New Section */}
+        {accounts.length > 0 && (
+          <DropdownMenuSub>
+            <DropdownMenuSubTrigger className="justify-between">
+              <span>Account</span>
+              {countActiveFiltersByType('account') > 0 && (
+                <span className="ml-1 rounded-full bg-primary text-primary-foreground w-5 h-5 flex items-center justify-center text-xs">
+                  {countActiveFiltersByType('account')}
+                </span>
+              )}
+            </DropdownMenuSubTrigger>
+            <DropdownMenuPortal>
+              <DropdownMenuSubContent onCloseAutoFocus={(e) => e.preventDefault()}>
+                {accounts.map(account => (
+                  <DropdownMenuItem 
+                    key={account.id}
+                    className="flex items-center justify-between cursor-pointer"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      toggleFilter('account', account.id, account.name);
+                    }}
+                  >
+                    <span>{account.name}</span>
+                    {isFilterActive('account', account.id) && <CheckIcon className="h-4 w-4" />}
+                  </DropdownMenuItem>
+                ))}
+                {countActiveFiltersByType('account') > 0 && (
+                  <>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem 
+                      className="text-muted-foreground cursor-pointer"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        clearFilterType('account');
+                      }}
+                    >
+                      Clear account filters
+                    </DropdownMenuItem>
+                  </>
+                )}
+              </DropdownMenuSubContent>
+            </DropdownMenuPortal>
+          </DropdownMenuSub>
+        )}
+
         {totalActiveFilters > 0 && (
           <>
             <DropdownMenuSeparator />
@@ -303,7 +350,8 @@ export function TransactionFilter({
     </DropdownMenu>
   );
 
-  // Render the mobile dialog filter
+  // Render the mobile dialog filter to include accounts
+  // In the renderMobileFilterDialog function, add the Account Filter Section
   const renderMobileFilterDialog = () => (
     <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
       <DialogContent className="sm:max-w-md">
@@ -404,28 +452,60 @@ export function TransactionFilter({
               ))}
             </div>
           </div>
-        </div>
         
-        <DialogFooter className="flex flex-col-reverse sm:flex-row gap-2">
-          {tempFilters.length > 0 && (
-            <Button 
-              variant="outline" 
-              onClick={() => clearAllFilters(true)}
-              className="w-full sm:w-auto"
-            >
-              Clear All
-            </Button>
-          )}
+        {/* Account Filter Section - Add this section */}
+        {accounts && accounts.length > 0 && (
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <h3 className="font-medium">Account</h3>
+              {countActiveFiltersByType('account', tempFilters) > 0 && (
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  onClick={() => clearFilterType('account', true)}
+                  className="h-8 text-xs text-muted-foreground"
+                >
+                  Clear
+                </Button>
+              )}
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {accounts.map(account => (
+                <Button
+                  key={account.id}
+                  variant={isFilterActive('account', account.id, tempFilters) ? "default" : "outline"}
+                  size="sm"
+                  className="h-8"
+                  onClick={() => toggleFilter('account', account.id, account.name, true)}
+                >
+                  {account.name}
+                </Button>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+      
+      <DialogFooter className="flex flex-col-reverse sm:flex-row gap-2">
+        {tempFilters.length > 0 && (
           <Button 
-            onClick={applyFilters}
+            variant="outline" 
+            onClick={() => clearAllFilters(true)}
             className="w-full sm:w-auto"
           >
-            Apply Filters
+            Clear All
           </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-  );
+        )}
+        <Button 
+          onClick={applyFilters}
+          className="w-full sm:w-auto"
+        >
+          Apply Filters
+        </Button>
+      </DialogFooter>
+    </DialogContent>
+  </Dialog>
+);
 
   return (
     <>

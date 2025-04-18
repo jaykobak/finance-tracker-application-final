@@ -73,6 +73,7 @@ export function TransactionList({
           years={years}
           months={months}
           categories={categories}
+          accounts={accounts} // Pass accounts to the filter
           activeFilters={activeFilters}
           onFilterChange={handleFilterChange}
         />
