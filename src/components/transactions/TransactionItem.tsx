@@ -68,52 +68,53 @@ export function TransactionItem({
   const formattedDate = format(new Date(date), "MMM d, yyyy");
   const formattedTime = format(new Date(date), "h:mm a");
 
-  // Format currency with abbreviated suffixes (K, M, B) for large numbers
+  // Format currency with abbreviated suffixes (K, M, B, T) for large numbers
   const formatCurrency = (amount: number) => {
     // Special handling for Nigerian Naira and Ghanaian Cedi
     if (currencyCode === 'NGN' || currencyCode === 'GHS') {
       const symbol = currencyCode === 'NGN' ? '₦' : '₵';
-      
-      // Format with appropriate suffix based on amount
-      if (Math.abs(amount) < 100000) {
+
+      if (Math.abs(amount) < 1000) {
         return `${symbol}${new Intl.NumberFormat("en-US", {
           style: "decimal",
           maximumFractionDigits: 0,
         }).format(amount)}`;
-      } else if (Math.abs(amount) >= 100000 && Math.abs(amount) < 1000000) {
+      } else if (Math.abs(amount) < 1_000_000) {
         const formatted = new Intl.NumberFormat("en-US", {
           style: "decimal",
           maximumFractionDigits: 1,
-        }).format(amount / 1000).replace(".0", "");
+        }).format(amount / 1_000).replace(".0", "");
         return `${symbol}${formatted}K`;
-      } else if (Math.abs(amount) >= 1000000 && Math.abs(amount) < 1000000000) {
+      } else if (Math.abs(amount) < 1_000_000_000) {
         const formatted = new Intl.NumberFormat("en-US", {
           style: "decimal",
           maximumFractionDigits: 1,
-        }).format(amount / 1000000).replace(".0", "");
+        }).format(amount / 1_000_000).replace(".0", "");
         return `${symbol}${formatted}M`;
-      } else if (Math.abs(amount) >= 1000000000) {
+      } else if (Math.abs(amount) < 1_000_000_000_000) {
         const formatted = new Intl.NumberFormat("en-US", {
           style: "decimal",
           maximumFractionDigits: 1,
-        }).format(amount / 1000000000).replace(".0", "");
+        }).format(amount / 1_000_000_000).replace(".0", "");
         return `${symbol}${formatted}B`;
+      } else {
+        const formatted = new Intl.NumberFormat("en-US", {
+          style: "decimal",
+          maximumFractionDigits: 1,
+        }).format(amount / 1_000_000_000_000).replace(".0", "");
+        return `${symbol}${formatted}T`;
       }
     }
-    
+
     // For other currencies, use the standard Intl formatter
-    // If amount is less than 100,000, just return regular formatting
-    if (Math.abs(amount) < 100000) {
+    if (Math.abs(amount) < 1000) {
       return new Intl.NumberFormat("en-US", {
         style: "currency",
         currency: currencyCode,
         currencyDisplay: "symbol",
         maximumFractionDigits: 0,
       }).format(amount);
-    }
-
-    // For thousands (K)
-    else if (Math.abs(amount) >= 100000 && Math.abs(amount) < 1000000) {
+    } else if (Math.abs(amount) < 1_000_000) {
       return (
         new Intl.NumberFormat("en-US", {
           style: "currency",
@@ -121,13 +122,10 @@ export function TransactionItem({
           currencyDisplay: "symbol",
           maximumFractionDigits: 1,
         })
-          .format(amount / 1000)
+          .format(amount / 1_000)
           .replace(".0", "") + "K"
       );
-    }
-
-    // For millions (M)
-    else if (Math.abs(amount) >= 1000000 && Math.abs(amount) < 1000000000) {
+    } else if (Math.abs(amount) < 1_000_000_000) {
       return (
         new Intl.NumberFormat("en-US", {
           style: "currency",
@@ -135,13 +133,10 @@ export function TransactionItem({
           currencyDisplay: "symbol",
           maximumFractionDigits: 1,
         })
-          .format(amount / 1000000)
+          .format(amount / 1_000_000)
           .replace(".0", "") + "M"
       );
-    }
-
-    // For billions (B)
-    else if (Math.abs(amount) >= 1000000000) {
+    } else if (Math.abs(amount) < 1_000_000_000_000) {
       return (
         new Intl.NumberFormat("en-US", {
           style: "currency",
@@ -149,8 +144,19 @@ export function TransactionItem({
           currencyDisplay: "symbol",
           maximumFractionDigits: 1,
         })
-          .format(amount / 1000000000)
+          .format(amount / 1_000_000_000)
           .replace(".0", "") + "B"
+      );
+    } else {
+      return (
+        new Intl.NumberFormat("en-US", {
+          style: "currency",
+          currency: currencyCode,
+          currencyDisplay: "symbol",
+          maximumFractionDigits: 1,
+        })
+          .format(amount / 1_000_000_000_000)
+          .replace(".0", "") + "T"
       );
     }
   };
