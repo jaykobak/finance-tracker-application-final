@@ -90,7 +90,7 @@ export function TransactionList({
           </div>
         )}
         
-        <ScrollArea className="h-[350px] pr-4 -mr-4">
+        <ScrollArea className="max-h-[60vh] overflow-auto pr-4">
           {filteredTransactions.length > 0 ? (
             <div className="space-y-2">
               {filteredTransactions.map((transaction) => (

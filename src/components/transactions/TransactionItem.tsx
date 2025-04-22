@@ -339,9 +339,9 @@ export function TransactionItem({
                 <DropdownMenuSeparator />
                 <DropdownMenuItem
                   onClick={() => onDelete(id)}
-                  className="text-destructive focus:text-destructive cursor-pointer"
+                  className="text-white hover:bg-destructive focus:bg-destructive cursor-pointer"
                 >
-                  <Trash2Icon className="mr-2 h-4 w-4" />
+                  <Trash2Icon className="mr-2 h-4 w-4 text-red-500" />
                   <span>Delete Transaction</span>
                 </DropdownMenuItem>
               </DropdownMenuContent>
@@ -403,7 +403,7 @@ export function TransactionItem({
       ) : (
         // Desktop dialog remains the same
         <Dialog open={detailsDialogOpen} onOpenChange={setDetailsDialogOpen}>
-          <DialogContent className="sm:max-w-md">
+          <DialogContent className="sm:max-w-md max-h-[80vh] overflow-auto">
             <DialogHeader>
               <DialogTitle>Transaction Details</DialogTitle>
               <DialogDescription>
