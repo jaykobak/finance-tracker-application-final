@@ -30,6 +30,16 @@ import {
 } from "@/components/ui/card";
 import { useMediaQuery } from '@/hooks/useMediaQuery';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 interface TransactionItemProps {
   transaction: Transaction;
@@ -45,6 +55,7 @@ export function TransactionItem({
   const { id, type, amount, description, category, date } = transaction;
   const isIncome = type === "income";
   const [detailsDialogOpen, setDetailsDialogOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false); // Add state for delete confirmation
   const [currencyCode, setCurrencyCode] = useState('USD');
   const [currencySymbol, setCurrencySymbol] = useState('$');
 
@@ -185,6 +196,16 @@ export function TransactionItem({
     setDetailsDialogOpen(true);
   };
 
+  // Add handler for delete confirmation
+  const handleDeleteClick = () => {
+    setDeleteDialogOpen(true);
+  };
+
+  const handleConfirmDelete = () => {
+    onDelete(id);
+    setDeleteDialogOpen(false);
+  };
+
   // Transaction details content - extracted to avoid duplication
   const renderTransactionDetails = () => (
     <Card className="border-0 shadow-none">
@@ -297,14 +318,14 @@ export function TransactionItem({
             </div>
           </div>
         </div>
-        
+
         {/* Split into two columns: amount and actions */}
         <div className="flex items-center space-x-2 sm:space-x-4">
           {/* Amount column with account name above */}
           <div className="flex flex-col items-end">
             {/* Account name above amount with truncation */}
             {accountName && (
-              <span 
+              <span
                 className="text-xs text-muted-foreground mb-0.5"
                 title={accountName} // Show full name on hover
               >
@@ -323,7 +344,7 @@ export function TransactionItem({
               {formattedAmount}
             </span>
           </div>
-          
+
           {/* Actions column (three-dot menu) */}
           <div>
             <DropdownMenu>
@@ -344,8 +365,8 @@ export function TransactionItem({
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem
-                  onClick={() => onDelete(id)}
-                  className="text-white hover:bg-destructive focus:bg-destructive cursor-pointer"
+                  onClick={handleDeleteClick} // Changed to open confirmation dialog
+                  className="text-red-500 hover:bg-destructive focus:bg-destructive cursor-pointer"
                 >
                   <Trash2Icon className="mr-2 h-4 w-4 text-red-500" />
                   <span>Delete Transaction</span>
@@ -358,42 +379,42 @@ export function TransactionItem({
 
       {isMobile ? (
         <Sheet open={detailsDialogOpen} onOpenChange={setDetailsDialogOpen}>
-          <SheetContent 
-            side="bottom" 
+          <SheetContent
+            side="bottom"
             className="h-auto max-h-[60vh] rounded-t-xl overflow-auto sheet-content"
             onPointerDown={(e) => {
               // This handles swipe on the entire sheet content
               const content = e.currentTarget;
               const startY = e.clientY;
               let moved = false;
-              
+
               const onMove = (moveEvent: PointerEvent) => {
                 moved = true;
                 const deltaY = moveEvent.clientY - startY;
                 if (deltaY > 0) {
                   content.style.transform = `translateY(${deltaY}px)`;
-                  content.style.transition = 'none';
+                  content.style.transition = "none";
                 }
               };
-              
+
               const onUp = (upEvent: PointerEvent) => {
-                document.removeEventListener('pointermove', onMove);
-                document.removeEventListener('pointerup', onUp);
-                
+                document.removeEventListener("pointermove", onMove);
+                document.removeEventListener("pointerup", onUp);
+
                 if (moved) {
-                  content.style.transition = 'transform 0.2s ease-out';
+                  content.style.transition = "transform 0.2s ease-out";
                   const deltaY = upEvent.clientY - startY;
                   if (deltaY > 40) {
                     content.style.transform = `translateY(100%)`;
                     setTimeout(() => setDetailsDialogOpen(false), 200);
                   } else {
-                    content.style.transform = '';
+                    content.style.transform = "";
                   }
                 }
               };
-              
-              document.addEventListener('pointermove', onMove);
-              document.addEventListener('pointerup', onUp);
+
+              document.addEventListener("pointermove", onMove);
+              document.addEventListener("pointerup", onUp);
             }}
           >
             <div className="w-full flex justify-center mb-4">
@@ -420,6 +441,51 @@ export function TransactionItem({
           </DialogContent>
         </Dialog>
       )}
+
+      {/* Add delete confirmation dialog */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent className="max-w-md">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-center">
+              Delete Transaction
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-center space-y-2">
+              <p>Are you sure you want to delete this transaction?</p>
+              <div className="mt-2 p-3 bg-muted rounded-lg">
+                <div className="font-medium text-foreground">{description}</div>
+                <div className="flex justify-between items-center mt-1">
+                  <span className="text-sm text-muted-foreground">
+                    {formattedDate}
+                  </span>
+                  <span
+                    className={cn(
+                      "font-medium",
+                      isIncome ? "text-positive" : "text-negative"
+                    )}
+                  >
+                    {isIncome ? "+" : "-"}
+                    {formattedAmount}
+                  </span>
+                </div>
+              </div>
+              <p className="text-sm text-destructive mt-2">
+                This action cannot be undone.
+              </p>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="sm:space-x-2">
+            <AlertDialogCancel className="w-full sm:w-auto">
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleConfirmDelete}
+              className="w-full sm:w-auto bg-destructive hover:bg-destructive/90"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }
