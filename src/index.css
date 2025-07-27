@@ -4,52 +4,52 @@
 
 @layer base {
   :root {
-    --background: 210 40% 98%;
-    --foreground: 222.2 84% 4.9%;
+    --background: 210 15% 97%; /* Even more subtle off-white with minimal blue tint */
+    --foreground: 222.2 60% 15%; /* Softer, less harsh text color */
 
-    --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
+    --card: 0 0% 99%; /* Very subtle off-white cards */
+    --card-foreground: 222.2 60% 15%;
 
-    --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
+    --popover: 0 0% 99%;
+    --popover-foreground: 222.2 60% 15%;
 
-    --primary: 212 100% 50%;
-    --primary-foreground: 210 40% 98%;
+    --primary: 212 90% 55%; /* Slightly muted primary color */
+    --primary-foreground: 210 15% 97%;
 
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
+    --secondary: 210 20% 96%; /* More subtle secondary */
+    --secondary-foreground: 222.2 40% 15%;
 
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
+    --muted: 210 20% 96%;
+    --muted-foreground: 215.4 16% 55%; /* Softer muted text */
 
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
+    --accent: 210 20% 96%;
+    --accent-foreground: 222.2 40% 15%;
 
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
+    --destructive: 0 70% 65%; /* Slightly muted destructive */
+    --destructive-foreground: 210 15% 97%;
 
-    --positive: 142 76% 36%;
-    --positive-foreground: 210 40% 98%;
+    --positive: 142 60% 40%; /* Slightly muted positive */
+    --positive-foreground: 210 15% 97%;
 
-    --negative: 0 84% 60%;
-    --negative-foreground: 210 40% 98%;
+    --negative: 0 70% 65%; /* Slightly muted negative */
+    --negative-foreground: 210 15% 97%;
 
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 212 100% 50%;
+    --border: 214.3 15% 92%; /* Even softer border color */
+    --input: 214.3 15% 92%;
+    --ring: 212 80% 60%;
 
     --radius: 0.75rem;
   }
 
   .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
+    --background: 222.2 25% 15%; /* More subtle dark gray with blue tint */
+    --foreground: 210 25% 90%; /* Softer white text */
 
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
+    --card: 222.2 25% 12%; /* Slightly darker card background */
+    --card-foreground: 210 25% 90%;
 
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
+    --popover: 222.2 25% 12%;
+    --popover-foreground: 210 25% 90%;
 
     --primary: 210 100% 65%;
     --primary-foreground: 222.2 47.4% 11.2%;
