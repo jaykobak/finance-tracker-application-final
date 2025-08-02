@@ -13,10 +13,9 @@ export default defineConfig(({ mode }) => ({
   },
   plugins: [
     react(),
-    mode === 'development' &&
-    componentTagger(),
+    mode === "development" && componentTagger(),
     visualizer({
-      filename: './dist/bundle-analysis.html',
+      filename: "./dist/bundle-analysis.html",
       open: true,
       gzipSize: true,
       brotliSize: true,
@@ -29,32 +28,19 @@ export default defineConfig(({ mode }) => ({
     dedupe: ["react", "react-dom"],
   },
   build: {
+    // Set chunk size warning limit to 600 kB to prioritize faster initial load times
+    chunkSizeWarningLimit: 600,
     rollupOptions: {
       output: {
-        // manualChunks(id) {
-        //   if (id.includes('node_modules')) {
-        //     if (id.includes('react')) {
-        //       return 'vendor_react';
-        //     }
-        //     if (id.includes('@radix-ui')) {
-        //       return 'vendor_radix';
-        //     }
-        //     if (id.includes('shadcn')) {
-        //       return 'vendor_shadcn';
-        //     }
-        //     if (id.includes('lodash')) {
-        //       return 'vendor_lodash';
-        //     }
-        //     if (id.includes('date-fns')) {
-        //       return 'vendor_datefns';
-        //     }
-        //     if (id.includes('recharts')) {
-        //       return 'vendor_recharts';
-        //     }
-        //     return 'vendor_misc';
-        //   }
-        // }
-      }
-    }
+        manualChunks(id) {
+          if (id.includes("node_modules")) {
+            if (id.includes("recharts")) {
+              return "vendor_recharts";
+            }
+            return "vendor";
+          }
+        },
+      },
+    },
   },
 }));
