@@ -18,7 +18,7 @@ import {
 } from 'lucide-react';
 import { FinancialSummary, Transaction } from '@/lib/types';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
-import { 
+import {
   Carousel,
   CarouselContent,
   CarouselItem,
@@ -110,6 +110,9 @@ export function BalanceChart({ summary, transactions, onAccountsUpdate }: Balanc
   const [animate, setAnimate] = useState(false);
   const [currencySymbol, setCurrencySymbol] = useState('$');
   const isDesktop = useMediaQuery('(min-width: 768px)');
+  
+  // Add the missing state declaration
+  const [addAccountSheetOpen, setAddAccountSheetOpen] = useState(false);
   
   // Form state - moved to component level instead of using formValues in the AccountFormContent
   const [newAccountName, setNewAccountName] = useState('');
@@ -205,13 +208,14 @@ export function BalanceChart({ summary, transactions, onAccountsUpdate }: Balanc
     // Reset the form
     accountFormRef.current.resetForm();
     
-    // Close the dialog/sheet by triggering a click on the close button
-    const closeButton = document.querySelector(
-      isDesktop ? '[data-dialog-close]' : '[data-sheet-close]'
-    ) as HTMLButtonElement | null;
-    
-    if (closeButton) {
-      closeButton.click();
+    // Close the dialog/sheet directly
+    if (isDesktop) {
+      const closeButton = document.querySelector('[data-dialog-close]') as HTMLButtonElement | null;
+      if (closeButton) {
+        closeButton.click();
+      }
+    } else {
+      setAddAccountSheetOpen(false); // Close the sheet directly
     }
     
     toast.success(`Account "${formState.name}" added successfully`);
@@ -468,34 +472,14 @@ export function BalanceChart({ summary, transactions, onAccountsUpdate }: Balanc
                 </DialogContent>
               </Dialog>
             ) : (
-              <Sheet>
-                <SheetTrigger asChild>
-                  <Button 
-                    variant="ghost" 
-                    size="icon" 
-                    className="h-8 w-8"
-                  >
-                    <PlusIcon className="h-4 w-4" />
-                  </Button>
-                </SheetTrigger>
-                <SheetContent side="bottom" className="h-[90vh] sm:h-[70vh] overflow-y-auto">
-                  <SheetHeader className="mb-4">
-                    <SheetTitle>Add New Account</SheetTitle>
-                    <SheetDescription>
-                      Create a new account to track your finances
-                    </SheetDescription>
-                  </SheetHeader>
-                  
-                  <AccountFormContent ref={accountFormRef} />
-                  
-                  <SheetFooter className="mt-4 sm:mt-0">
-                    <SheetClose asChild>
-                      <Button variant="outline" data-sheet-close>Cancel</Button>
-                    </SheetClose>
-                    <Button onClick={handleAddAccount} className="mb-2">Add Account</Button>
-                  </SheetFooter>
-                </SheetContent>
-              </Sheet>
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                className="h-8 w-8"
+                onClick={() => setAddAccountSheetOpen(true)}
+              >
+                <PlusIcon className="h-4 w-4" />
+              </Button>
             )}
           </div>
           <CardDescription>Manage your financial accounts</CardDescription>
@@ -584,39 +568,21 @@ export function BalanceChart({ summary, transactions, onAccountsUpdate }: Balanc
                     </DialogContent>
                   </Dialog>
                 ) : (
-                  <Sheet>
-                    <SheetTrigger asChild>
-                      <div className="flex flex-col items-center justify-center pt-6 pb-4 h-[200px] cursor-pointer hover:bg-secondary/20 rounded-lg transition-colors">
-                        <Button 
-                          variant="outline" 
-                          className="rounded-full h-16 w-16 mb-4"
-                        >
-                          <PlusIcon className="h-8 w-8" />
-                        </Button>
-                        <h3 className="text-lg font-medium">Add Account</h3>
-                        <p className="text-sm text-muted-foreground mt-2 text-center px-4">
-                          Add a new account to track your finances
-                        </p>
-                      </div>
-                    </SheetTrigger>
-                    <SheetContent side="bottom" className="h-[90vh] sm:h-[70vh] overflow-y-auto">
-                      <SheetHeader className="mb-4">
-                        <SheetTitle>Add New Account</SheetTitle>
-                        <SheetDescription>
-                          Create a new account to track your finances
-                        </SheetDescription>
-                      </SheetHeader>
-                      
-                      <AccountFormContent ref={accountFormRef} />
-                      
-                      <SheetFooter className="mt-4 sm:mt-0">
-                        <SheetClose asChild>
-                          <Button variant="outline" data-sheet-close>Cancel</Button>
-                        </SheetClose>
-                        <Button onClick={handleAddAccount} className="mb-2">Add Account</Button>
-                      </SheetFooter>
-                    </SheetContent>
-                  </Sheet>
+                  <div 
+                    className="flex flex-col items-center justify-center pt-6 pb-4 h-[200px] cursor-pointer hover:bg-secondary/20 rounded-lg transition-colors"
+                    onClick={() => setAddAccountSheetOpen(true)}
+                  >
+                    <Button 
+                      variant="outline" 
+                      className="rounded-full h-16 w-16 mb-4"
+                    >
+                      <PlusIcon className="h-8 w-8" />
+                    </Button>
+                    <h3 className="text-lg font-medium">Add Account</h3>
+                    <p className="text-sm text-muted-foreground mt-2 text-center px-4">
+                      Add a new account to track your finances
+                    </p>
+                  </div>
                 )}
               </CarouselItem>
             </CarouselContent>
@@ -627,6 +593,70 @@ export function BalanceChart({ summary, transactions, onAccountsUpdate }: Balanc
           </Carousel>
         </CardContent>
       </Card>
+      
+      {/* Shared mobile sheet for adding accounts */}
+      {!isDesktop && (
+        <Sheet open={addAccountSheetOpen} onOpenChange={setAddAccountSheetOpen}>
+          <SheetContent 
+            side="bottom" 
+            className="h-[90vh] sm:h-[60vh] rounded-t-xl sheet-content"
+            onPointerDown={(e) => {
+              // This handles swipe on the entire sheet content
+              const content = e.currentTarget;
+              const startY = e.clientY;
+              let moved = false;
+
+              const onMove = (moveEvent: PointerEvent) => {
+                moved = true;
+                const deltaY = moveEvent.clientY - startY;
+                if (deltaY > 0) {
+                  content.style.transform = `translateY(${deltaY}px)`;
+                  content.style.transition = "none";
+                }
+              };
+
+              const onUp = (upEvent: PointerEvent) => {
+                document.removeEventListener("pointermove", onMove);
+                document.removeEventListener("pointerup", onUp);
+
+                if (moved) {
+                  content.style.transition = "transform 0.2s ease-out";
+                  const deltaY = upEvent.clientY - startY;
+                  if (deltaY > 40) {
+                    content.style.transform = `translateY(100%)`;
+                    setTimeout(() => setAddAccountSheetOpen(false), 200);
+                  } else {
+                    content.style.transform = "";
+                  }
+                }
+              };
+
+              document.addEventListener("pointermove", onMove);
+              document.addEventListener("pointerup", onUp);
+            }}
+          >
+            <div className="w-full flex justify-center mb-4">
+              {/* Improved handle visibility */}
+              <div className="w-12 h-1.5 flex-shrink-0 rounded-full bg-gray-300 dark:bg-muted" />
+            </div>
+            <div className="overflow-y-auto h-[calc(90vh-80px)] sm:h-[calc(60vh-80px)] pb-4">
+              <SheetHeader className="mb-4 sticky top-0 bg-background z-10 pt-2">
+                <SheetTitle>Add New Account</SheetTitle>
+                <SheetDescription>
+                  Create a new account to track your finances
+                </SheetDescription>
+              </SheetHeader>
+              
+              <AccountFormContent ref={accountFormRef} />
+              
+              <div className="flex flex-col gap-2 mt-6">
+                <Button onClick={handleAddAccount}>Add Account</Button>
+                <Button variant="outline" onClick={() => setAddAccountSheetOpen(false)}>Cancel</Button>
+              </div>
+            </div>
+          </SheetContent>
+        </Sheet>
+      )}
       
       <Card className="md:col-span-2">
         <CardHeader className="pb-2">

@@ -5,10 +5,11 @@ interface CurrencyInputProps extends Omit<React.InputHTMLAttributes<HTMLInputEle
   value: number;
   onChange: (value: number) => void;
   currency?: string;
+  allowDecimalPoint?: boolean;
 }
 
 const CurrencyInput = forwardRef<HTMLInputElement, CurrencyInputProps>(
-  ({ value, onChange, currency, className, ...props }, ref) => {
+  ({ value, onChange, currency, allowDecimalPoint, className, ...props }, ref) => {
     const [displayValue, setDisplayValue] = useState('');
     const [currencySymbol, setCurrencySymbol] = useState('$');
 
