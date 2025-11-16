@@ -1,9 +1,10 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
-import { toast } from 'sonner';
+import React, { createContext, useContext, useState, useEffect } from "react";
+import { toast } from "sonner";
+import { authAPI } from "./api";
 
 // Simple user type
 interface User {
-  id: string;
+  id: string | number;
   name: string;
   email: string;
 }
@@ -12,8 +13,8 @@ interface AuthContextType {
   user: User | null;
   isAuthenticated: boolean;
   isLoading: boolean;
-  login: (email: string, password: string) => void;
-  signup: (name: string, email: string, password: string) => void;
+  login: (email: string, password: string) => Promise<void>;
+  signup: (name: string, email: string, password: string) => Promise<void>;
   logout: () => void;
 }
 
@@ -22,62 +23,66 @@ const AuthContext = createContext<AuthContextType>({
   user: null,
   isAuthenticated: false,
   isLoading: true,
-  login: () => {},
-  signup: () => {},
+  login: async () => {},
+  signup: async () => {},
   logout: () => {},
 });
 
-// Generate random ID for demo purposes
-const generateId = () => Math.random().toString(36).substring(2, 11);
-
-// Local storage keys
-const USER_STORAGE_KEY = 'finance-tracker-user';
-
-export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
+  children,
+}) => {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   // Check if user is logged in on mount
   useEffect(() => {
-    const storedUser = localStorage.getItem(USER_STORAGE_KEY);
-    if (storedUser) {
-      setUser(JSON.parse(storedUser));
-    }
-    setIsLoading(false);
+    const initAuth = async () => {
+      const token = localStorage.getItem("finance_tracker_token");
+
+      if (token) {
+        try {
+          // Verify token and get user profile
+          const response = await authAPI.getProfile();
+          setUser(response.user);
+        } catch (error) {
+          console.error("Token validation failed:", error);
+          // Clear invalid token
+          localStorage.removeItem("finance_tracker_token");
+        }
+      }
+
+      setIsLoading(false);
+    };
+
+    initAuth();
   }, []);
 
-  // For demo purposes - in a real app, this would connect to a backend
-  const login = (email: string, password: string) => {
-    // This is a demo login that accepts any credentials
-    // In a real app, this would validate against a backend
-    const newUser: User = {
-      id: generateId(),
-      name: email.split('@')[0], // Extract name from email for demo
-      email,
-    };
-    
-    setUser(newUser);
-    localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(newUser));
-    toast.success('Logged in successfully');
+  const login = async (email: string, password: string) => {
+    try {
+      const response = await authAPI.login(email, password);
+      setUser(response.user);
+      toast.success("Logged in successfully");
+    } catch (error: any) {
+      toast.error(error.message || "Login failed");
+      throw error;
+    }
   };
 
-  const signup = (name: string, email: string, password: string) => {
-    // In a real app, this would create an account on the backend
-    const newUser: User = {
-      id: generateId(),
-      name,
-      email,
-    };
-    
-    setUser(newUser);
-    localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(newUser));
-    toast.success('Account created successfully');
+  const signup = async (name: string, email: string, password: string) => {
+    try {
+      const response = await authAPI.signup(name, email, password);
+      setUser(response.user);
+      toast.success("Account created successfully");
+    } catch (error: any) {
+      toast.error(error.message || "Signup failed");
+      throw error;
+    }
   };
 
   const logout = () => {
     setUser(null);
-    localStorage.removeItem(USER_STORAGE_KEY);
-    toast.success('Logged out successfully');
+    authAPI.logout();
+    toast.success("Logged out successfully");
   };
 
   return (
@@ -97,5 +102,3 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 };
 
 export const useAuth = () => useContext(AuthContext);
-
-

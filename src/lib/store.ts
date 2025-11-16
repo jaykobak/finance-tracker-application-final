@@ -1,75 +1,20 @@
-import { useState, useEffect } from 'react';
-import { Transaction, FinancialSummary } from './types';
-import { toast } from 'sonner';
-
-// Helper to get a unique ID
-const generateId = () => Math.random().toString(36).substring(2, 11);
-
-// Local storage key
-const STORAGE_KEY = 'financial-tracker-transactions';
-
-// Initial data if needed
-const initialTransactions: Transaction[] = [
-  {
-    id: generateId(),
-    type: 'income',
-    amount: 5000,
-    description: 'Salary',
-    category: 'Work',
-    date: new Date().toISOString(),
-  },
-  {
-    id: generateId(),
-    type: 'expense',
-    amount: 1200,
-    description: 'Rent',
-    category: 'Housing',
-    date: new Date().toISOString(),
-  },
-  {
-    id: generateId(),
-    type: 'expense',
-    amount: 350,
-    description: 'Groceries',
-    category: 'Food',
-    date: new Date().toISOString(),
-  },
-];
-
-// Load transactions from localStorage
-const loadTransactions = (): Transaction[] => {
-  if (typeof window === 'undefined') return [];
-  
-  try {
-    const savedTransactions = localStorage.getItem(STORAGE_KEY);
-    return savedTransactions ? JSON.parse(savedTransactions) : initialTransactions;
-  } catch (error) {
-    console.error('Failed to load transactions from localStorage', error);
-    return initialTransactions;
-  }
-};
-
-// Save transactions to localStorage
-const saveTransactions = (transactions: Transaction[]): void => {
-  if (typeof window === 'undefined') return;
-  
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(transactions));
-  } catch (error) {
-    console.error('Failed to save transactions to localStorage', error);
-  }
-};
+import { useState, useEffect } from "react";
+import { Transaction, FinancialSummary } from "./types";
+import { toast } from "sonner";
+import { transactionsAPI } from "./api";
 
 // Calculate financial summary
-export const calculateSummary = (transactions: Transaction[]): FinancialSummary => {
+export const calculateSummary = (
+  transactions: Transaction[]
+): FinancialSummary => {
   const totalIncome = transactions
-    .filter(t => t.type === 'income')
+    .filter((t) => t.type === "income")
     .reduce((sum, t) => sum + t.amount, 0);
-    
+
   const totalExpense = transactions
-    .filter(t => t.type === 'expense')
+    .filter((t) => t.type === "expense")
     .reduce((sum, t) => sum + t.amount, 0);
-    
+
   return {
     totalIncome,
     totalExpense,
@@ -80,56 +25,110 @@ export const calculateSummary = (transactions: Transaction[]): FinancialSummary 
 // Hook to manage transactions
 export const useTransactions = () => {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [summary, setSummary] = useState<FinancialSummary>({
+    totalIncome: 0,
+    totalExpense: 0,
+    balance: 0,
+  });
   const [isLoading, setIsLoading] = useState(true);
-  
-  // Load transactions on mount
-  useEffect(() => {
-    setTransactions(loadTransactions());
-    setIsLoading(false);
-  }, []);
-  
-  // Save transactions when they change
-  useEffect(() => {
-    if (!isLoading) {
-      saveTransactions(transactions);
+
+  // Load transactions from API on mount
+  const fetchTransactions = async () => {
+    try {
+      setIsLoading(true);
+      const response = await transactionsAPI.getAll();
+
+      // Convert transaction IDs to strings and amounts to numbers
+      const formattedTransactions = response.transactions.map((t: any) => ({
+        ...t,
+        id: String(t.id),
+        amount: parseFloat(t.amount),
+      }));
+
+      setTransactions(formattedTransactions);
+
+      // Fetch summary
+      const summaryResponse = await transactionsAPI.getSummary();
+      setSummary(summaryResponse.summary);
+    } catch (error: any) {
+      console.error("Failed to load transactions:", error);
+      toast.error(error.message || "Failed to load transactions");
+      // Set empty state on error
+      setTransactions([]);
+    } finally {
+      setIsLoading(false);
     }
-  }, [transactions, isLoading]);
-  
-  // Get financial summary
-  const summary = calculateSummary(transactions);
-  
+  };
+
+  useEffect(() => {
+    fetchTransactions();
+  }, []);
+
   // Add a new transaction
-  const addTransaction = (transaction: Omit<Transaction, 'id'>) => {
-    const newTransaction = {
-      ...transaction,
-      id: generateId(),
-    };
-    
-    setTransactions(prev => [newTransaction, ...prev]);
-    toast.success(`${transaction.type === 'income' ? 'Income' : 'Expense'} added`, {
-      description: transaction.description,
-    });
+  const addTransaction = async (transaction: Omit<Transaction, "id">) => {
+    try {
+      const response = await transactionsAPI.create(transaction);
+
+      const newTransaction = {
+        ...response.transaction,
+        id: String(response.transaction.id),
+        amount: parseFloat(response.transaction.amount),
+      };
+
+      // Update local state
+      setTransactions((prev) => [newTransaction, ...prev]);
+
+      // Recalculate summary
+      const newSummary = calculateSummary([newTransaction, ...transactions]);
+      setSummary(newSummary);
+
+      toast.success(
+        `${transaction.type === "income" ? "Income" : "Expense"} added`,
+        {
+          description: transaction.description,
+        }
+      );
+    } catch (error: any) {
+      toast.error(error.message || "Failed to add transaction");
+      throw error;
+    }
   };
-  
+
   // Delete a transaction
-  const deleteTransaction = (id: string) => {
-    setTransactions(prev => {
-      const transaction = prev.find(t => t.id === id);
-      if (!transaction) return prev;
-      
-      toast.success(`${transaction.type === 'income' ? 'Income' : 'Expense'} deleted`, {
-        description: transaction.description,
-      });
-      
-      return prev.filter(t => t.id !== id);
-    });
+  const deleteTransaction = async (id: string) => {
+    try {
+      const transaction = transactions.find((t) => t.id === id);
+
+      await transactionsAPI.delete(id);
+
+      // Update local state
+      const updatedTransactions = transactions.filter((t) => t.id !== id);
+      setTransactions(updatedTransactions);
+
+      // Recalculate summary
+      const newSummary = calculateSummary(updatedTransactions);
+      setSummary(newSummary);
+
+      if (transaction) {
+        toast.success(
+          `${transaction.type === "income" ? "Income" : "Expense"} deleted`,
+          {
+            description: transaction.description,
+          }
+        );
+      }
+    } catch (error: any) {
+      toast.error(error.message || "Failed to delete transaction");
+      throw error;
+    }
   };
-  
+
   return {
     transactions,
     summary,
     addTransaction,
     deleteTransaction,
     isLoading,
+    refetch: fetchTransactions,
   };
 };
