@@ -1,4 +1,4 @@
-export type TransactionType = 'income' | 'expense';
+export type TransactionType = "income" | "expense";
 
 export interface Transaction {
   id: string;
@@ -7,6 +7,7 @@ export interface Transaction {
   description: string;
   category: string;
   date: string; // ISO string
+  accountId?: string; // Optional for backward compatibility
 }
 
 export interface FinancialSummary {
