@@ -78,6 +78,7 @@ import {
 import { toast } from "sonner";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 import CurrencyInput from "@/components/ui/CurrencyInput";
+import { accountsAPI } from "@/lib/api";
 
 // Account type
 interface Account {
@@ -164,14 +165,13 @@ export function BalanceChart({
       type: Account["type"];
       number: string;
       icon: string;
+      initialBalance: number;
     };
     resetForm: () => void;
   } | null>(null);
 
-  // Base accounts (without calculated balances)
-  const [baseAccounts, setBaseAccounts] = useState<Account[]>([
-    { id: "cash", name: "Cash", balance: 0, type: "cash", icon: "wallet" },
-  ]);
+  // Base accounts loaded from backend (store initial balances only)
+  const [baseAccounts, setBaseAccounts] = useState<Account[]>([]);
 
   // Calculate account balances from transactions
   const accounts = React.useMemo(() => {
@@ -193,22 +193,30 @@ export function BalanceChart({
     });
   }, [baseAccounts, transactions]);
 
-  // Send initial accounts to parent component when the component mounts
-  useEffect(
-    () => {
-      // Only run once on component mount to initialize the accounts in the transaction form
-      if (onAccountsUpdate && baseAccounts.length > 0) {
-        const formattedAccounts = baseAccounts.map((account) => ({
-          id: account.id,
-          name: account.name,
+  // Load accounts from backend once
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const res = await accountsAPI.getAll();
+        const fetched: Account[] = (res.accounts || []).map((a: any) => ({
+          id: String(a.id),
+          name: a.name,
+          balance: parseFloat(a.initial_balance ?? 0),
+          type: a.type,
+          icon: a.icon || "wallet",
+          accountNumber: a.account_number || undefined,
         }));
-        onAccountsUpdate(formattedAccounts);
+        setBaseAccounts(fetched);
+        if (onAccountsUpdate) {
+          onAccountsUpdate(fetched.map((a) => ({ id: a.id, name: a.name })));
+        }
+      } catch (e: any) {
+        console.error("Failed to load accounts", e);
       }
-    },
-    [
-      /* empty dependency array to run only once */
-    ]
-  );
+    };
+    load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Get the currency symbol from localStorage when the component mounts
   useEffect(() => {
@@ -235,7 +243,7 @@ export function BalanceChart({
   };
 
   // Add a new account
-  const handleAddAccount = () => {
+  const handleAddAccount = async () => {
     // Use the ref to get current form state
     if (!accountFormRef.current) {
       toast.error("Form not available");
@@ -249,48 +257,47 @@ export function BalanceChart({
       return;
     }
 
-    const newAccount: Account = {
-      id: `account-${Date.now()}`,
-      name: formState.name,
-      balance: formState.initialBalance,
-      type: formState.type,
-      accountNumber: formState.number || undefined,
-      icon: formState.icon,
-    };
-
-    // Update base accounts state
-    const updatedAccounts = [...baseAccounts, newAccount];
-    setBaseAccounts(updatedAccounts);
-
-    // Only update parent component after successfully adding an account
-    if (onAccountsUpdate) {
-      const formattedAccounts = updatedAccounts.map((account) => ({
-        id: account.id,
-        name: account.name,
-      }));
-      onAccountsUpdate(formattedAccounts);
-    }
-
-    // Reset the form
-    accountFormRef.current.resetForm();
-
-    // Close the dialog/sheet directly
-    if (isDesktop) {
-      const closeButton = document.querySelector(
-        "[data-dialog-close]"
-      ) as HTMLButtonElement | null;
-      if (closeButton) {
-        closeButton.click();
+    try {
+      const created = await accountsAPI.create({
+        name: formState.name,
+        type: formState.type,
+        accountNumber: formState.number || undefined,
+        icon: formState.icon,
+        initialBalance: formState.initialBalance || 0,
+      });
+      const a = created.account;
+      const newAccount: Account = {
+        id: String(a.id),
+        name: a.name,
+        balance: parseFloat(a.initial_balance ?? 0),
+        type: a.type,
+        icon: a.icon || "wallet",
+        accountNumber: a.account_number || undefined,
+      };
+      const updatedAccounts = [...baseAccounts, newAccount];
+      setBaseAccounts(updatedAccounts);
+      if (onAccountsUpdate) {
+        onAccountsUpdate(
+          updatedAccounts.map((acc) => ({ id: acc.id, name: acc.name }))
+        );
       }
-    } else {
-      setAddAccountSheetOpen(false); // Close the sheet directly
+      accountFormRef.current.resetForm();
+      if (isDesktop) {
+        const closeButton = document.querySelector(
+          "[data-dialog-close]"
+        ) as HTMLButtonElement | null;
+        closeButton?.click();
+      } else {
+        setAddAccountSheetOpen(false);
+      }
+      toast.success(`Account "${formState.name}" added`);
+    } catch (e: any) {
+      toast.error(e?.message || "Failed to add account");
     }
-
-    toast.success(`Account "${formState.name}" added successfully`);
   };
 
   // Delete an account
-  const handleDeleteAccount = (accountId: string) => {
+  const handleDeleteAccount = async (accountId: string) => {
     // Don't allow deleting the last account
     if (baseAccounts.length <= 1) {
       toast.error("You must have at least one account");
@@ -300,20 +307,19 @@ export function BalanceChart({
     const accountToDelete = baseAccounts.find((a) => a.id === accountId);
     if (!accountToDelete) return;
 
-    // Update base accounts state
-    const updatedAccounts = baseAccounts.filter((a) => a.id !== accountId);
-    setBaseAccounts(updatedAccounts);
-
-    // Only update parent component after successfully deleting an account
-    if (onAccountsUpdate) {
-      const formattedAccounts = updatedAccounts.map((account) => ({
-        id: account.id,
-        name: account.name,
-      }));
-      onAccountsUpdate(formattedAccounts);
+    try {
+      await accountsAPI.delete(accountId);
+      const updatedAccounts = baseAccounts.filter((a) => a.id !== accountId);
+      setBaseAccounts(updatedAccounts);
+      if (onAccountsUpdate) {
+        onAccountsUpdate(
+          updatedAccounts.map((acc) => ({ id: acc.id, name: acc.name }))
+        );
+      }
+      toast.success(`Account "${accountToDelete.name}" deleted`);
+    } catch (e: any) {
+      toast.error(e?.message || "Failed to delete account");
     }
-
-    toast.success(`Account "${accountToDelete.name}" deleted`);
   };
 
   // Get icon for account type

@@ -5,6 +5,7 @@ import helmet from "helmet";
 import morgan from "morgan";
 import authRoutes from "./routes/authRoutes.js";
 import transactionRoutes from "./routes/transactionRoutes.js";
+import accountRoutes from "./routes/accountRoutes.js";
 import { errorHandler, notFound } from "./middleware/errorHandler.js";
 
 // Load environment variables
@@ -32,6 +33,7 @@ app.get("/health", (req, res) => {
 // API Routes
 app.use("/api/auth", authRoutes);
 app.use("/api/transactions", transactionRoutes);
+app.use("/api/accounts", accountRoutes);
 
 // Error handling
 app.use(notFound); // 404 handler

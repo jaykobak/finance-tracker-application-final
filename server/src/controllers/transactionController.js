@@ -8,7 +8,7 @@ export const getTransactions = async (req, res, next) => {
     const userId = req.user.id;
 
     const result = await pool.query(
-      `SELECT id, type, amount, description, category, date, created_at 
+      `SELECT id, type, amount, description, category, date, account_id, created_at 
        FROM transactions 
        WHERE user_id = $1 
        ORDER BY date DESC, created_at DESC`,
@@ -34,7 +34,7 @@ export const getTransactionById = async (req, res, next) => {
     const userId = req.user.id;
 
     const result = await pool.query(
-      `SELECT id, type, amount, description, category, date, created_at 
+      `SELECT id, type, amount, description, category, date, account_id, created_at 
        FROM transactions 
        WHERE id = $1 AND user_id = $2`,
       [id, userId]
@@ -62,7 +62,7 @@ export const getTransactionById = async (req, res, next) => {
 export const createTransaction = async (req, res, next) => {
   try {
     const userId = req.user.id;
-    const { type, amount, description, category, date } = req.body;
+    const { type, amount, description, category, date, accountId } = req.body;
 
     // Validation
     if (!type || !amount || !description || !category || !date) {
@@ -88,10 +88,10 @@ export const createTransaction = async (req, res, next) => {
 
     // Create transaction
     const result = await pool.query(
-      `INSERT INTO transactions (user_id, type, amount, description, category, date) 
-       VALUES ($1, $2, $3, $4, $5, $6) 
-       RETURNING id, type, amount, description, category, date, created_at`,
-      [userId, type, amount, description, category, date]
+      `INSERT INTO transactions (user_id, type, amount, description, category, date, account_id) 
+       VALUES ($1, $2, $3, $4, $5, $6, $7) 
+       RETURNING id, type, amount, description, category, date, account_id, created_at`,
+      [userId, type, amount, description, category, date, accountId || null]
     );
 
     res.status(201).json({
@@ -111,7 +111,7 @@ export const updateTransaction = async (req, res, next) => {
   try {
     const { id } = req.params;
     const userId = req.user.id;
-    const { type, amount, description, category, date } = req.body;
+    const { type, amount, description, category, date, accountId } = req.body;
 
     // Check if transaction exists and belongs to user
     const checkResult = await pool.query(
@@ -171,6 +171,11 @@ export const updateTransaction = async (req, res, next) => {
       values.push(date);
       paramCount++;
     }
+    if (accountId !== undefined) {
+      updates.push(`account_id = $${paramCount}`);
+      values.push(accountId || null);
+      paramCount++;
+    }
 
     updates.push(`updated_at = CURRENT_TIMESTAMP`);
 
@@ -189,7 +194,7 @@ export const updateTransaction = async (req, res, next) => {
       `UPDATE transactions 
        SET ${updates.join(", ")} 
        WHERE id = $${paramCount} AND user_id = $${paramCount + 1}
-       RETURNING id, type, amount, description, category, date, updated_at`,
+       RETURNING id, type, amount, description, category, date, account_id, updated_at`,
       values
     );
 

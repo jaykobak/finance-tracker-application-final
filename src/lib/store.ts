@@ -43,8 +43,7 @@ export const useTransactions = () => {
         ...t,
         id: String(t.id),
         amount: parseFloat(t.amount),
-        // Preserve account reference if present (frontend or future backend)
-        accountId: t.accountId ?? t.account_id ?? t.account_id ?? undefined,
+        accountId: t.account_id ? String(t.account_id) : undefined,
       }));
 
       setTransactions(formattedTransactions);
@@ -75,9 +74,10 @@ export const useTransactions = () => {
         ...response.transaction,
         id: String(response.transaction.id),
         amount: parseFloat(response.transaction.amount),
-        // Persist the selected account locally for UI balance updates
-        accountId: transaction.accountId,
-      } as unknown as Transaction;
+        accountId: response.transaction.account_id
+          ? String(response.transaction.account_id)
+          : transaction.accountId,
+      } as Transaction;
 
       // Update local state
       setTransactions((prev) => [newTransaction, ...prev]);

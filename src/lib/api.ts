@@ -74,27 +74,20 @@ export const authAPI = {
 
 // Transactions API
 export const transactionsAPI = {
-  getAll: async () => {
-    return await authFetch("/transactions");
-  },
-
-  getById: async (id: string) => {
-    return await authFetch(`/transactions/${id}`);
-  },
-
+  getAll: async () => authFetch("/transactions"),
+  getById: async (id: string) => authFetch(`/transactions/${id}`),
   create: async (transaction: {
     type: "income" | "expense";
     amount: number;
     description: string;
     category: string;
     date: string;
-  }) => {
-    return await authFetch("/transactions", {
+    accountId?: string;
+  }) =>
+    authFetch("/transactions", {
       method: "POST",
       body: JSON.stringify(transaction),
-    });
-  },
-
+    }),
   update: async (
     id: string,
     transaction: Partial<{
@@ -103,31 +96,56 @@ export const transactionsAPI = {
       description: string;
       category: string;
       date: string;
+      accountId?: string;
     }>
-  ) => {
-    return await authFetch(`/transactions/${id}`, {
+  ) =>
+    authFetch(`/transactions/${id}`, {
       method: "PUT",
       body: JSON.stringify(transaction),
-    });
-  },
-
-  delete: async (id: string) => {
-    return await authFetch(`/transactions/${id}`, {
-      method: "DELETE",
-    });
-  },
-
-  getSummary: async () => {
-    return await authFetch("/transactions/summary");
-  },
+    }),
+  delete: async (id: string) =>
+    authFetch(`/transactions/${id}`, { method: "DELETE" }),
+  getSummary: async () => authFetch("/transactions/summary"),
 };
 
-// Check if server is running
+// Accounts API
+export const accountsAPI = {
+  getAll: async () => authFetch("/accounts"),
+  create: async (account: {
+    name: string;
+    type: "cash" | "bank" | "credit" | "investment" | "savings" | "other";
+    accountNumber?: string;
+    icon?: string;
+    initialBalance?: number;
+  }) =>
+    authFetch("/accounts", {
+      method: "POST",
+      body: JSON.stringify(account),
+    }),
+  update: async (
+    id: string | number,
+    update: Partial<{
+      name: string;
+      type: "cash" | "bank" | "credit" | "investment" | "savings" | "other";
+      accountNumber?: string;
+      icon?: string;
+      initialBalance?: number;
+    }>
+  ) =>
+    authFetch(`/accounts/${id}`, {
+      method: "PUT",
+      body: JSON.stringify(update),
+    }),
+  delete: async (id: string | number) =>
+    authFetch(`/accounts/${id}`, { method: "DELETE" }),
+};
+
+// Health check
 export const checkServerHealth = async () => {
   try {
     const response = await fetch("http://localhost:5000/health");
     return response.ok;
-  } catch (error) {
+  } catch {
     return false;
   }
 };
