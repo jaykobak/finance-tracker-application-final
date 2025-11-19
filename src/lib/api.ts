@@ -1,5 +1,6 @@
-// API Base URL - change this if your backend runs on a different port
-const API_BASE_URL = "http://localhost:5000/api";
+// API Base URL - uses environment variable in production, localhost for development
+const API_BASE_URL =
+  import.meta.env.VITE_API_BASE_URL || "http://localhost:5000/api";
 
 // Helper function to get auth token from localStorage
 const getAuthToken = () => {
@@ -143,7 +144,7 @@ export const accountsAPI = {
 // Health check
 export const checkServerHealth = async () => {
   try {
-    const response = await fetch("http://localhost:5000/health");
+    const response = await fetch(`${API_BASE_URL.replace("/api", "")}/health`);
     return response.ok;
   } catch {
     return false;

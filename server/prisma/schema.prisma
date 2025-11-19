@@ -1,0 +1,78 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        Int      @id @default(autoincrement())
+  name      String   @db.VarChar(255)
+  email     String   @unique @db.VarChar(255)
+  password  String   @db.VarChar(255)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at")
+
+  accounts     Account[]
+  transactions Transaction[]
+
+  @@map("users")
+}
+
+model Account {
+  id             Int      @id @default(autoincrement())
+  userId         Int      @map("user_id")
+  name           String   @db.VarChar(255)
+  type           AccountType
+  accountNumber  String?  @map("account_number") @db.VarChar(100)
+  icon           String?  @default("wallet") @db.VarChar(50)
+  initialBalance Decimal  @default(0) @map("initial_balance") @db.Decimal(10, 2)
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @default(now()) @updatedAt @map("updated_at")
+
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  transactions Transaction[]
+
+  @@map("accounts")
+}
+
+model Transaction {
+  id          Int             @id @default(autoincrement())
+  userId      Int             @map("user_id")
+  type        TransactionType
+  amount      Decimal         @db.Decimal(10, 2)
+  description String          @db.VarChar(500)
+  category    String          @db.VarChar(100)
+  date        DateTime
+  accountId   Int?            @map("account_id")
+  createdAt   DateTime        @default(now()) @map("created_at")
+  updatedAt   DateTime        @default(now()) @updatedAt @map("updated_at")
+
+  user    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  account Account? @relation(fields: [accountId], references: [id], onDelete: SetNull)
+
+  @@index([userId], name: "idx_transactions_user_id")
+  @@index([date], name: "idx_transactions_date")
+  @@index([type], name: "idx_transactions_type")
+  @@index([accountId], name: "idx_transactions_account_id")
+  @@map("transactions")
+}
+
+enum AccountType {
+  cash
+  bank
+  credit
+  investment
+  savings
+  other
+}
+
+enum TransactionType {
+  income
+  expense
+}
