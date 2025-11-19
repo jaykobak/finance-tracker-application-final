@@ -205,6 +205,45 @@ Open these URLs in your browser:
 
 ---
 
+## 🐳 OPTIONAL: Run Backend with Docker (Production-Ready)
+
+You now have a multi-stage Dockerfile in `server/Dockerfile` that:
+
+- Installs dependencies
+- Runs `prisma generate` so the Prisma client is available
+- Prunes dev dependencies for a smaller image
+- Starts the app with `node src/server.js`
+
+Build and run locally:
+
+```powershell
+cd server
+
+# Build image (tags as finance-tracker-api)
+docker build -t finance-tracker-api .
+
+# Run the container, mapping host 8080 -> container 8080
+# Ensure you pass DATABASE_URL and JWT_SECRET (and any other env)
+docker run --rm -p 8080:8080 `
+   -e NODE_ENV=production `
+   -e PORT=8080 `
+   -e DATABASE_URL="postgresql://<user>:<password>@ep-xxx.region.aws.neon.tech/<db>?sslmode=require" `
+   -e JWT_SECRET="your-super-secret" `
+   -e JWT_EXPIRES_IN="7d" `
+   finance-tracker-api
+
+# Health check
+curl http://localhost:8080/health
+```
+
+Notes:
+
+- The server reads `process.env.PORT` and defaults to 5000; the Dockerfile sets `PORT=8080` and exposes that port.
+- If you use a build step in the future, `npm run build` is invoked during the Docker build.
+- For migrations with Prisma Migrate, run `npx prisma migrate deploy` during startup (entrypoint) or in your CI before starting the container.
+
+---
+
 ## 🌐 STEP 3: Deploy Frontend to Vercel
 
 ### 3.1 Configure Frontend Environment
